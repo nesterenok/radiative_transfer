@@ -8,9 +8,9 @@ void join_layers(cloud_data *cloud, int nb); // the data is averaged over the gr
 
 // Reading the data provided by the simulation of shock waves, 
 // the full data path must be given,
-void set_physical_parameters(std::string data_path, cloud_data* cloud);
+bool set_physical_parameters(std::string data_path, cloud_data* cloud);
 // the specimen concentration is multiplied by factor f,
-void set_molecular_conc(std::string data_path, std::string mol_name, cloud_data* cloud, double f = 1.);
+bool set_molecular_conc(std::string data_path, std::string mol_name, cloud_data* cloud, double f = 1.);
 
 // The cloud layer class
 class cloud_layer

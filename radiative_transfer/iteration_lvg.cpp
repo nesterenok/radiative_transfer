@@ -265,8 +265,8 @@ void hfs_lines::sort()
 
 iteration_scheme_line_overlap::iteration_scheme_line_overlap(const std::string& data_path, int verbosity)
     :iteration_scheme_lvg(data_path, verbosity) {
-    line_overlap1 = new lvg_line_overlap_data(data_path, "lvg/line_overlap_func_p1_test.txt", verbosity);
-    line_overlap2 = new lvg_line_overlap_data(data_path, "lvg/line_overlap_func_p2_test.txt", verbosity);
+    line_overlap1 = new lvg_line_overlap_data(data_path, "lvg/line_overlap_func_p1.txt", verbosity);
+    line_overlap2 = new lvg_line_overlap_data(data_path, "lvg/line_overlap_func_p2.txt", verbosity);
 }
 
 iteration_scheme_line_overlap::~iteration_scheme_line_overlap() {

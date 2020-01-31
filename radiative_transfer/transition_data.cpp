@@ -13,7 +13,7 @@
 using namespace std;
 
 transition_data::transition_data(int nb_lay, const energy_level &low, const energy_level &up)
-: inv(0.), gain(0.), lum(0.), tau(0.), exc_temp(0.), loss_rate(0.), tau_sat(0.)
+: inv(0.), gain(0.), lum(0.), tau(0.), exc_temp(0.), tau_sat(0.)
 {
 	nb_cloud_lay = nb_lay;
 	trans = new transition(low, up);
@@ -26,6 +26,12 @@ transition_data::transition_data(int nb_lay, const energy_level &low, const ener
 
 	lum_arr = new double [nb_cloud_lay];
 	memset(lum_arr, 0, nb_cloud_lay *sizeof(double));
+
+    pump_eff_arr = new double[nb_cloud_lay];
+    memset(pump_eff_arr, 0, nb_cloud_lay * sizeof(double));
+
+    loss_rate_arr = new double[nb_cloud_lay];
+    memset(loss_rate_arr, 0, nb_cloud_lay * sizeof(double));
 }
 
 transition_data::transition_data(const transition_data &obj)
@@ -39,7 +45,6 @@ transition_data::transition_data(const transition_data &obj)
 	tau = obj.tau;
 	tau_sat = obj.tau_sat;
 	exc_temp = obj.exc_temp;
-	loss_rate = obj.loss_rate;
 	
 	inv_arr = new double [nb_cloud_lay];
 	memcpy(inv_arr, obj.inv_arr, nb_cloud_lay *sizeof(double));
@@ -49,6 +54,12 @@ transition_data::transition_data(const transition_data &obj)
 
 	lum_arr = new double [nb_cloud_lay];
 	memcpy(lum_arr, obj.lum_arr, nb_cloud_lay *sizeof(double));
+
+    pump_eff_arr = new double[nb_cloud_lay];
+    memcpy(pump_eff_arr, obj.pump_eff_arr, nb_cloud_lay * sizeof(double));
+
+    loss_rate_arr = new double[nb_cloud_lay];
+    memcpy(loss_rate_arr, obj.loss_rate_arr, nb_cloud_lay * sizeof(double));
 }
 
 transition_data& transition_data::operator = (const transition_data &obj)
@@ -63,8 +74,7 @@ transition_data& transition_data::operator = (const transition_data &obj)
 	tau = obj.tau;
 	tau_sat = obj.tau_sat;
 	exc_temp = obj.exc_temp;
-	loss_rate = obj.loss_rate;
-
+	
 	delete [] inv_arr;
 	inv_arr = new double [nb_cloud_lay];
 	memcpy(inv_arr, obj.inv_arr, nb_cloud_lay *sizeof(double));
@@ -77,15 +87,25 @@ transition_data& transition_data::operator = (const transition_data &obj)
 	lum_arr = new double [nb_cloud_lay];
 	memcpy(lum_arr, obj.lum_arr, nb_cloud_lay *sizeof(double));
 
+    delete[] pump_eff_arr;
+    pump_eff_arr = new double[nb_cloud_lay];
+    memcpy(pump_eff_arr, obj.pump_eff_arr, nb_cloud_lay * sizeof(double));
+
+    delete[] loss_rate_arr;
+    loss_rate_arr = new double[nb_cloud_lay];
+    memcpy(loss_rate_arr, obj.loss_rate_arr, nb_cloud_lay * sizeof(double));
+
 	return *this;
 }
 
 transition_data::~transition_data()
 {
 	delete trans;
-	delete [] inv_arr;
-	delete [] gain_arr;
-	delete [] lum_arr;
+	delete[] inv_arr;
+	delete[] gain_arr;
+    delete[] lum_arr;
+    delete[] pump_eff_arr;
+    delete[] loss_rate_arr;
 }
 
 
@@ -232,7 +252,7 @@ void transition_data_container::find(double *level_pop, double rel_error)
 				if (is_inverted) {
 					calc_gain(*tr_data, level_pop);
 					// the condition on optical depth value: 
-					if (tr_data->tau > 0.1) {
+					if (tr_data->tau > 0.01) {
 						calc_exc_temp(*tr_data, level_pop, fixed_nb);
 						data.push_front(*tr_data);
 					}
@@ -293,7 +313,7 @@ void transition_data_container::calc_saturation_depth(double beaming_factor)
 		if (it->exc_temp < 0.) 
 		{
 			source_function = 1./(1. - exp(it->trans->energy *CM_INVERSE_TO_KELVINS/it->exc_temp));
-			intensity = it->loss_rate
+			intensity = it->loss_rate_arr[fixed_nb]
 				/(einst_coeff->arr[it->trans->up_lev.nb][it->trans->low_lev.nb] *beaming_factor *source_function);
 		
 			locate_index(sm_arr, t_nb, intensity, i);
@@ -384,13 +404,14 @@ void transition_data_container::save_full_data(const string & fname) const
 				<< setw(15) << "mean lum " << it->lum << " ph/cm3/s" << endl
 				<< "At fixed layer:" << endl
 				<< setw(15) << "exc temp " << it->exc_temp << " K" << endl
-				<< setw(15) << "loss rate " << it->loss_rate << " s-1" << endl 
 				<< setw(15) << "satur tau " << it->tau_sat << endl << endl;
 			
 			outfile << left << setw(17) << "relative depth " 
 				<< setw(13) << "inversion "
 				<< setw(13) << "gain "
-				<< setw(13) << "luminosity " << endl;
+				<< setw(13) << "luminosity " 
+                << setw(13) << "pump effic "
+                << setw(13) << "loss rate " << endl;
 			
 			for (i = 0; i < nb_cloud_lay; i++)
 			{
@@ -407,7 +428,9 @@ void transition_data_container::save_full_data(const string & fname) const
 				outfile << left << setprecision(3) 
 					<< setw(13) << it->inv_arr[i] 
 					<< setw(13) << it->gain_arr[i] 
-					<< setw(13) << it->lum_arr[i] << endl;
+					<< setw(13) << it->lum_arr[i] 
+                    << setw(13) << it->pump_eff_arr[i]
+                    << setw(13) << it->loss_rate_arr[i] << endl;
 			}
 			outfile << endl;
 			it++;
@@ -418,7 +441,7 @@ void transition_data_container::save_full_data(const string & fname) const
 
 void transition_data_container::save_transition(const std::string& fname, const transition &trans) const
 {
-    int i, p;
+    int i;
     double z;
     ofstream outfile;
   
@@ -431,7 +454,8 @@ void transition_data_container::save_transition(const std::string& fname, const 
         cout << "Error in" << SOURCE_NAME << ": can't open file to write transition data;" << endl;
     else
     {
-        outfile << left << setw(17) << "!depth(cm)" << setw(14) << "inv(cm-3)" << setw(14) << "gain(cm-1)" << setw(14) << "lum(ph/cm3/s)" << endl;
+        outfile << left << setw(17) << "!depth(cm)" << setw(14) << "inv(cm-3)" << setw(14) << "gain(cm-1)" << setw(14) << "lum(ph/cm3/s)" 
+            << setw(14) << "pumpeffic" << setw(14) << "lossrate(s-1)" << endl;
         for (i = 0; i < nb_cloud_lay; i++) 
         {
             if (i == 0) z = 0;
@@ -442,7 +466,9 @@ void transition_data_container::save_transition(const std::string& fname, const 
             outfile << left << setprecision(4)
                 << setw(14) << tr_data->inv_arr[i]
                 << setw(14) << tr_data->gain_arr[i]
-                << setw(14) << tr_data->lum_arr[i] << endl;
+                << setw(14) << tr_data->lum_arr[i] 
+                << setw(14) << tr_data->pump_eff_arr[i]
+                << setw(14) << tr_data->loss_rate_arr[i] << endl;
         }
     }
     outfile.close();

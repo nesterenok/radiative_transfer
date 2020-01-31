@@ -12,9 +12,10 @@ class transition_data
 {
 public:
 	int		nb_cloud_lay;
-    // population inversion = n_up/g_up - n_l/g_l [cm-3], gain > 0 for amplification [cm-1],
-	double	inv, gain, lum, tau, exc_temp, loss_rate, tau_sat; 
-	double	*inv_arr, *gain_arr, *lum_arr;
+    // population inversion = n_up/g_up - n_l/g_l [cm-3], gain > 0 for amplification [cm-1], 
+    // pump efficiency is dimensionless, loss rate in [s-1]
+	double	inv, gain, lum, tau, exc_temp, tau_sat; 
+	double	*inv_arr, *gain_arr, *lum_arr, *pump_eff_arr, *loss_rate_arr;
 
 	const transition *trans;
 	
@@ -60,7 +61,7 @@ public:
     void calc_saturation_depth(double beaming_factor);
     
 	// the function deletes the old data on inverted transitions, must be called first, 
-    // the transition is added if: 1. the population inversion in one layer > population error; 2. optical depth is > 0.1,
+    // the transition is added if: 1. the population inversion in one layer > population error; 2. optical depth is > 0.01,
     // the inversion, gain and excitation temperature are calculated,
 	void find(double *level_pop, double rel_error);
 

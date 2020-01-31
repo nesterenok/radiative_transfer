@@ -47,7 +47,6 @@ void lim_luminosity_lvg(iteration_scheme_lvg* calc_scheme, transition_data_conta
                 for (i = 0; i < nb_mol_lev; i++) {
                     if (einst_coeff->arr[i][j] != 0 && i != l_low.nb && i != l_up.nb)
                     {
-                        // for OH does not work properly,
                         if (i > j)
                             calc_scheme->intensity_calc(i, j, level_pop, intensity);
                         else calc_scheme->intensity_calc(j, i, level_pop, intensity);
@@ -81,14 +80,15 @@ void lim_luminosity_lvg(iteration_scheme_lvg* calc_scheme, transition_data_conta
             if (inversion > 0.) {
                 it->lum_arr[lay] = inversion / (1. / (up_loss_rate[lay] * l_up.g) + 1. / (low_loss_rate[lay] * l_low.g))
                     * cloud->lay_array[lay].mol_conc;
+                
+                it->pump_eff_arr[lay] = inversion / (level_pop[shift + l_up.nb] / l_up.g + level_pop[shift + l_low.nb] / l_low.g);
             }
-            else it->lum_arr[lay] = 1.e-99;
-
+            else {
+                it->lum_arr[lay] = it->pump_eff_arr[lay] = 1.e-99;
+            }
             it->lum += it->lum_arr[lay] * cloud->lay_array[lay].dz;
+            it->loss_rate_arr[lay] = (up_loss_rate[lay]* l_up.g + low_loss_rate[lay]* l_low.g)/((double) l_up.g + l_low.g);
         }      
-        lay = container->get_layer_nb();
-        it->loss_rate = 0.5 * (up_loss_rate[lay] + low_loss_rate[lay]); 
-        
         it->lum /= cloud->get_height();
         it++;
     }

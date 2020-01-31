@@ -42,22 +42,39 @@ void save_mol_data(std::string fname, cloud_data* cloud, double *lev_pop, int nb
 
 int main()
 {
+    int i;
     string sim_data_path, input_data_path, output_path;
+    stringstream sstr;
 
     input_data_path = "C:/Users/Александр/Documents/input_data/";
     //sim_data_path = "C:/Users/Александр/Documents/Данные и графики/paper C-type shocks - new data on H-H2 collisions/output_data_2e4_magnf-b2/shock_cr1-15_25_new/";
-    sim_data_path = "C:/Users/Александр/Documents/Данные и графики/paper C-type shocks - new data on H-H2 collisions/output_data_2e5/shock_cr1-15_15/";
-    output_path = sim_data_path + "radiative_transfer/masers/";
-
-    calc_maser_pumping(input_data_path, sim_data_path, output_path);
+    sim_data_path = "C:/Users/Александр/Documents/Данные и графики/paper C-type shocks - new data on H-H2 collisions/output_data_2e4/shock_cr1-15_15/";
     
-    output_path = sim_data_path + "radiative_transfer/oh_test/";
-    calc_oh_line_test(input_data_path, sim_data_path, output_path);
+    output_path = sim_data_path + "radiative_transfer/masers/";
+//    calc_maser_pumping(input_data_path, sim_data_path, output_path);
+    
+    output_path = sim_data_path + "radiative_transfer/masers_oh_test/";
+//    calc_oh_line_test(input_data_path, sim_data_path, output_path);
+
+    sim_data_path = "C:/Users/Александр/Documents/Данные и графики/paper C-type shocks - new data on H-H2 collisions/output_data_2e5/shock_cr1-15_";
+    for (i = 5; i < 100; i += 5) {
+        sstr.clear();
+        sstr.str("");
+
+        if (i < 10) sstr << sim_data_path << "0" << i << "/";
+        else sstr << sim_data_path << i << "/";
+
+        output_path = sstr.str() + "radiative_transfer/masers/";
+        calc_maser_pumping(input_data_path, sstr.str(), output_path);
+
+        output_path = sstr.str() + "radiative_transfer/masers_oh_test/";
+        calc_oh_line_test(input_data_path, sstr.str(), output_path);
+    }
 }
 
 void calc_maser_pumping(string input_data_path, string sim_data_path, string output_path)
 {
-    bool acceleration;
+    bool acceleration, do_simdata_exist;
 	int verbosity = 1;
 	int isotope, nb_lev_ch3oh, nb_vibr_ch3oh, ang_mom_max, nb_lev_onh3, nb_lev_pnh3, nb_lev_oh, nb_of_dust_comp, nb_cloud_lay, iter_max_nb;
 	
@@ -67,7 +84,8 @@ void calc_maser_pumping(string input_data_path, string sim_data_path, string out
     stringstream sstr;
 	string fname;
     list<transition> trans_list;
-    list<transition>::const_iterator it;
+    list<transition>::const_iterator tl_it;
+    list<transition_data>::const_iterator td_it;
 
 #ifdef _OPENMP
 	omp_set_num_threads(NB_OF_OMP_PROCESSES);
@@ -94,7 +112,10 @@ void calc_maser_pumping(string input_data_path, string sim_data_path, string out
 		= new cloud_data();
 	
     // physical parameters of the particular shock model 
-	set_physical_parameters(sim_data_path, cloud);
+    do_simdata_exist = set_physical_parameters(sim_data_path, cloud);
+    if (!do_simdata_exist)
+        return;
+
 	join_layers(cloud, 5);
 	nb_cloud_lay = cloud->nb_lay;
 
@@ -132,34 +153,41 @@ void calc_maser_pumping(string input_data_path, string sim_data_path, string out
 	ch3oh_collisions* ch3oh_a_coll
 		= new ch3oh_collisions(input_data_path, ch3oh_a_levels, verbosity);
 
-	set_molecular_conc(sim_data_path, "CH3OH", cloud, f = 0.5);
+	do_simdata_exist = set_molecular_conc(sim_data_path, "CH3OH", cloud, f = 0.5);
+    if (!do_simdata_exist)
+        return;
+
 	it_scheme_lvg->init_molecule_data(ch3oh_a_levels, ch3oh_a_einst, ch3oh_a_coll);
-	
     calc_molecular_populations(cloud, it_scheme_lvg, it_control, ch3oh_a_levels, ch3oh_a_einst, ch3oh_a_coll, ch3oh_a_popul, nb_lev_ch3oh);
 
 	transition_data_container* trans_data_ch3oh_a
 		= new transition_data_container(cloud, ch3oh_a_levels, ch3oh_a_einst);
 
+    // only transitions with inversion of level populations are saved individually,
+    trans_data_ch3oh_a->find(ch3oh_a_popul, rel_population_error); 
+    lim_luminosity_lvg(it_scheme_lvg, trans_data_ch3oh_a, cloud, ch3oh_a_levels, ch3oh_a_einst, ch3oh_a_coll, ch3oh_a_popul);
+    
     trans_list.clear();
     ch3oh_classI_trans_list(ch3oh_a_levels, trans_list);
     //ch3oh_classII_trans_list(ch3oh_a_levels, trans_list);
     
-    trans_data_ch3oh_a->find(ch3oh_a_popul, rel_population_error);
-    trans_data_ch3oh_a->add(trans_list, ch3oh_a_popul);
-
-    lim_luminosity_lvg(it_scheme_lvg, trans_data_ch3oh_a, cloud, ch3oh_a_levels, ch3oh_a_einst, ch3oh_a_coll, ch3oh_a_popul);
-
-    it = trans_list.begin();
-    while (it != trans_list.end())
+    // only those transitions are saved, that are in the given list
+    td_it = trans_data_ch3oh_a->data.begin();
+    while (td_it != trans_data_ch3oh_a->data.end())
     {
-        sstr.clear();
-        sstr.str("");
-        sstr << output_path + "inv_trans_" + ch3oh_a_mol.name + "_";
-        sstr << (int)(it->freq * 1.e-6);
-        sstr << ".txt";
-        trans_data_ch3oh_a->save_transition(sstr.str(), (*it));
-        it++;
+        tl_it = find(trans_list.begin(), trans_list.end(), *(td_it->trans));
+        if (tl_it != trans_list.end()) {
+            sstr.clear();
+            sstr.str("");
+            sstr << output_path + "inv_trans_" + ch3oh_a_mol.name + "_";
+            sstr << (int)(td_it->trans->freq * 1.e-6);
+            sstr << ".txt";
+            trans_data_ch3oh_a->save_transition(sstr.str(), *(td_it->trans));    
+        }
+        td_it++;
     }
+    // adding more transitions:
+    trans_data_ch3oh_a->add(trans_list, ch3oh_a_popul);
 
     sstr.clear();
     sstr.str("");
@@ -195,34 +223,38 @@ void calc_maser_pumping(string input_data_path, string sim_data_path, string out
     ch3oh_collisions* ch3oh_e_coll
         = new ch3oh_collisions(input_data_path, ch3oh_e_levels, verbosity);
 
-    set_molecular_conc(sim_data_path, "CH3OH", cloud, f = 0.5);
-    it_scheme_lvg->init_molecule_data(ch3oh_e_levels, ch3oh_e_einst, ch3oh_e_coll);
+    do_simdata_exist = set_molecular_conc(sim_data_path, "CH3OH", cloud, f = 0.5);
+    if (!do_simdata_exist)
+        return;
 
+    it_scheme_lvg->init_molecule_data(ch3oh_e_levels, ch3oh_e_einst, ch3oh_e_coll);
     calc_molecular_populations(cloud, it_scheme_lvg, it_control, ch3oh_e_levels, ch3oh_e_einst, ch3oh_e_coll, ch3oh_e_popul, nb_lev_ch3oh);
 
     transition_data_container* trans_data_ch3oh_e
         = new transition_data_container(cloud, ch3oh_e_levels, ch3oh_e_einst);
 
-    trans_list.clear();
-    ch3oh_classI_trans_list(ch3oh_e_levels, trans_list);
-    //ch3oh_classII_trans_list(ch3oh_a_levels, trans_list);
-    
-    trans_data_ch3oh_e->find(ch3oh_e_popul, rel_population_error);
-    trans_data_ch3oh_e->add(trans_list, ch3oh_e_popul);
-
+    trans_data_ch3oh_e->find(ch3oh_e_popul, rel_population_error);   
     lim_luminosity_lvg(it_scheme_lvg, trans_data_ch3oh_e, cloud, ch3oh_e_levels, ch3oh_e_einst, ch3oh_e_coll, ch3oh_e_popul);
 
-    it = trans_list.begin();
-    while (it != trans_list.end())
+    trans_list.clear();
+    ch3oh_classI_trans_list(ch3oh_e_levels, trans_list);
+    //ch3oh_classII_trans_list(ch3oh_e_levels, trans_list);
+
+    td_it = trans_data_ch3oh_e->data.begin();
+    while (td_it != trans_data_ch3oh_e->data.end())
     {
-        sstr.clear();
-        sstr.str("");
-        sstr << output_path + "inv_trans_" + ch3oh_e_mol.name + "_";
-        sstr << (int)(it->freq * 1.e-6);
-        sstr << ".txt";
-        trans_data_ch3oh_e->save_transition(sstr.str(), (*it));
-        it++;
+        tl_it = find(trans_list.begin(), trans_list.end(), *(td_it->trans));
+        if (tl_it != trans_list.end()) {
+            sstr.clear();
+            sstr.str("");
+            sstr << output_path + "inv_trans_" + ch3oh_e_mol.name + "_";
+            sstr << (int)(td_it->trans->freq * 1.e-6);
+            sstr << ".txt";
+            trans_data_ch3oh_e->save_transition(sstr.str(), *(td_it->trans));
+        }
+        td_it++;
     }
+    trans_data_ch3oh_e->add(trans_list, ch3oh_e_popul);
 
     sstr.clear();
     sstr.str("");
@@ -257,33 +289,34 @@ void calc_maser_pumping(string input_data_path, string sim_data_path, string out
 	nh3_collisions *onh3_coll = 
 		new nh3_collisions(input_data_path, onh3_levels, verbosity);
 
-	set_molecular_conc(sim_data_path, "NH3", cloud, f = 0.5); 
+	do_simdata_exist = set_molecular_conc(sim_data_path, "NH3", cloud, f = 0.5);
+    if (!do_simdata_exist)
+        return;
+
 	it_scheme_lvg->init_molecule_data(onh3_levels, onh3_einst, onh3_coll);
-	
     calc_molecular_populations(cloud, it_scheme_lvg, it_control, onh3_levels, onh3_einst, onh3_coll, onh3_popul, nb_lev_onh3);
 
 	transition_data_container* trans_data_onh3
 		= new transition_data_container(cloud, onh3_levels, onh3_einst);
  
-    trans_list.clear();
-    nh3_trans_list(onh3_levels, trans_list);
-    
-	trans_data_onh3->find(onh3_popul, rel_population_error);
-    trans_data_onh3->add(trans_list, onh3_popul);
-
+	trans_data_onh3->find(onh3_popul, rel_population_error);   
     lim_luminosity_lvg(it_scheme_lvg, trans_data_onh3, cloud, onh3_levels, onh3_einst, onh3_coll, onh3_popul);
 
-    it = trans_list.begin();
-    while (it != trans_list.end())
+    td_it = trans_data_onh3->data.begin();
+    while (td_it != trans_data_onh3->data.end())
     {
         sstr.clear();
         sstr.str("");
         sstr << output_path + "inv_trans_" + onh3_mol.name + "_";
-        sstr << (int)(it->freq * 1.e-6);
+        sstr << (int)(td_it->trans->freq * 1.e-6);
         sstr << ".txt";
-        trans_data_onh3->save_transition(sstr.str(), (*it));
-        it++;
+        trans_data_onh3->save_transition(sstr.str(), *(td_it->trans));
+        td_it++;
     }
+
+    trans_list.clear();
+    nh3_trans_list(onh3_levels, trans_list);
+    trans_data_onh3->add(trans_list, onh3_popul);
 
     sstr.clear();
     sstr.str("");
@@ -316,21 +349,22 @@ void calc_maser_pumping(string input_data_path, string sim_data_path, string out
 	nh3_collisions *pnh3_coll = 
 		new nh3_collisions(input_data_path, pnh3_levels, verbosity);
 
-	set_molecular_conc(sim_data_path, "NH3", cloud, f = 0.5); 
-	it_scheme_lvg->init_molecule_data(pnh3_levels, pnh3_einst, pnh3_coll);
+	do_simdata_exist = set_molecular_conc(sim_data_path, "NH3", cloud, f = 0.5);
+    if (!do_simdata_exist)
+        return;
 
+	it_scheme_lvg->init_molecule_data(pnh3_levels, pnh3_einst, pnh3_coll);
     calc_molecular_populations(cloud, it_scheme_lvg, it_control, pnh3_levels, pnh3_einst, pnh3_coll, pnh3_popul, nb_lev_pnh3);
 
 	transition_data_container* trans_data_pnh3
 		= new transition_data_container(cloud, pnh3_levels, pnh3_einst);
 
-	trans_list.clear();
-    nh3_trans_list(pnh3_levels, trans_list);
-
-    trans_data_pnh3->find(pnh3_popul, rel_population_error);
-    trans_data_pnh3->add(trans_list, pnh3_popul);
-
+    trans_data_pnh3->find(pnh3_popul, rel_population_error);    
     lim_luminosity_lvg(it_scheme_lvg, trans_data_pnh3, cloud, pnh3_levels, pnh3_einst, pnh3_coll, pnh3_popul);
+	
+    trans_list.clear();
+    nh3_trans_list(pnh3_levels, trans_list);
+    trans_data_pnh3->add(trans_list, pnh3_popul);
 
     sstr.clear();
     sstr.str("");
@@ -365,7 +399,9 @@ void calc_maser_pumping(string input_data_path, string sim_data_path, string out
     oh_hf_collisions *oh_coll = 
         new oh_hf_collisions(input_data_path, oh_levels, verbosity);
 
-    set_molecular_conc(sim_data_path, "OH", cloud);
+    do_simdata_exist = set_molecular_conc(sim_data_path, "OH", cloud);
+    if (!do_simdata_exist)
+        return;
 
     iteration_scheme_line_overlap * it_scheme_loverlap 
         = new iteration_scheme_line_overlap(input_data_path, verbosity);
@@ -381,25 +417,24 @@ void calc_maser_pumping(string input_data_path, string sim_data_path, string out
     transition_data_container* trans_data_oh
         = new transition_data_container(cloud, oh_levels, oh_einst);
 
-    trans_list.clear();
-    oh_trans_list(oh_levels, trans_list);
-
     trans_data_oh->find(oh_popul, rel_population_error);
-    trans_data_oh->add(trans_list, oh_popul);
-
     lim_luminosity_lvg(it_scheme_loverlap, trans_data_oh, cloud, oh_levels, oh_einst, oh_coll, oh_popul);
 
-    it = trans_list.begin();
-    while (it != trans_list.end())
+    td_it = trans_data_oh->data.begin();
+    while (td_it != trans_data_oh->data.end())
     {
         sstr.clear();
         sstr.str("");
         sstr << output_path + "inv_trans_" + oh_mol.name + "_";
-        sstr << (int)(it->freq * 1.e-6);
+        sstr << (int)(td_it->trans->freq * 1.e-6);
         sstr << ".txt";
-        trans_data_oh->save_transition(sstr.str(), (*it));
-        it++;
+        trans_data_oh->save_transition(sstr.str(), *(td_it->trans));
+        td_it++;
     }
+    
+    trans_list.clear();
+    oh_trans_list(oh_levels, trans_list);
+    trans_data_oh->add(trans_list, oh_popul);
 
     sstr.clear();
     sstr.str("");
@@ -425,7 +460,7 @@ void calc_maser_pumping(string input_data_path, string sim_data_path, string out
 
 void calc_oh_line_test(string input_data_path, string sim_data_path, string output_path)
 {
-    bool acceleration;
+    bool acceleration, do_simdata_exist;
     int verbosity = 1;
     int nb_of_dust_comp, nb_cloud_lay, nb_lev_oh, isotope, iter_max_nb;
     
@@ -434,7 +469,7 @@ void calc_oh_line_test(string input_data_path, string sim_data_path, string outp
 
     stringstream sstr;
     list<transition> trans_list;
-    list<transition>::const_iterator it;
+    list<transition_data>::const_iterator td_it;
 
     // dust model:
     c_abund_pah = 0.;
@@ -448,7 +483,10 @@ void calc_oh_line_test(string input_data_path, string sim_data_path, string outp
     cloud_data* cloud
         = new cloud_data();
 
-    set_physical_parameters(sim_data_path, cloud);
+    do_simdata_exist = set_physical_parameters(sim_data_path, cloud);
+    if (!do_simdata_exist)
+        return;
+
     cloud->save_data(output_path + "phys_param1.txt");
 
     join_layers(cloud, 5);
@@ -482,34 +520,35 @@ void calc_oh_line_test(string input_data_path, string sim_data_path, string outp
     oh_hf_collisions* oh_coll =
         new oh_hf_collisions(input_data_path, oh_levels, verbosity);
 
-    set_molecular_conc(sim_data_path, "OH", cloud);
-    it_scheme_lvg->init_molecule_data(oh_levels, oh_einst, oh_coll);
+    do_simdata_exist = set_molecular_conc(sim_data_path, "OH", cloud);
+    if (!do_simdata_exist)
+        return;
 
+    it_scheme_lvg->init_molecule_data(oh_levels, oh_einst, oh_coll);
     calc_molecular_populations(cloud, it_scheme_lvg, it_control, oh_levels, oh_einst, oh_coll, oh_popul, nb_lev_oh, 
         iter_max_nb = 10000, acceleration = false);
 
     transition_data_container* trans_data_oh
         = new transition_data_container(cloud, oh_levels, oh_einst);
  
-    trans_list.clear();
-    oh_trans_list(oh_levels, trans_list);
-    
     trans_data_oh->find(oh_popul, rel_population_error);
-    trans_data_oh->add(trans_list, oh_popul);
-
     lim_luminosity_lvg(it_scheme_lvg, trans_data_oh, cloud, oh_levels, oh_einst, oh_coll, oh_popul);
-
-    it = trans_list.begin();
-    while (it != trans_list.end())
+    
+    td_it = trans_data_oh->data.begin();
+    while (td_it != trans_data_oh->data.end())
     {
         sstr.clear();
         sstr.str("");
         sstr << output_path + "inv_trans_" + oh_mol.name + "_";
-        sstr << (int)(it->freq * 1.e-6);
+        sstr << (int)(td_it->trans->freq * 1.e-6);
         sstr << ".txt";
-        trans_data_oh->save_transition(sstr.str(), (*it));
-        it++;
+        trans_data_oh->save_transition(sstr.str(), *(td_it->trans));
+        td_it++;
     }
+   
+    trans_list.clear();
+    oh_trans_list(oh_levels, trans_list);
+    trans_data_oh->add(trans_list, oh_popul);
 
     sstr.clear();
     sstr.str("");
@@ -663,7 +702,8 @@ void calc_oh_no_hfs(string input_data_path, string sim_data_path, string output_
     cloud_data* cloud
         = new cloud_data();
 
-    set_physical_parameters(sim_data_path, cloud);
+    do_simdata_exist = set_physical_parameters(sim_data_path, cloud);
+   
     join_layers(cloud, 5);
     nb_cloud_lay = cloud->nb_lay;
 

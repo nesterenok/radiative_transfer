@@ -177,8 +177,7 @@ void join_layers(cloud_data* cloud, int nb)
 
 void cloud_data::save_data(std::string fname)
 {
-    int i, j;
-    double a;
+    int i;
     ofstream output;
 
     output.open(fname.c_str());
@@ -209,7 +208,7 @@ void cloud_data::save_data(std::string fname)
 }
 
 
-void set_physical_parameters(std::string data_path, cloud_data* cloud)
+bool set_physical_parameters(std::string data_path, cloud_data* cloud)
 {
     char text_line[MAX_TEXT_LINE_WIDTH];
     int i, j;
@@ -225,6 +224,7 @@ void set_physical_parameters(std::string data_path, cloud_data* cloud)
     input.open(fname.c_str());
     if (!input) {
         cout << "Cannot open file " << fname << endl;
+        return false;
     }
     else {
         while (!input.eof())
@@ -252,6 +252,7 @@ void set_physical_parameters(std::string data_path, cloud_data* cloud)
     input.open(fname.c_str());
     if (!input) {
         cout << "Cannot open file " << fname << endl;
+        return false;
     }
     else {
         i = 0;
@@ -278,6 +279,7 @@ void set_physical_parameters(std::string data_path, cloud_data* cloud)
     input.open(fname.c_str());
     if (!input) {
         cout << "Cannot open file " << fname << endl;
+        return false;
     }
     else {
         i = 0;
@@ -311,6 +313,7 @@ void set_physical_parameters(std::string data_path, cloud_data* cloud)
     input.open(fname.c_str());
     if (!input) {
         cout << "Cannot open file " << fname << endl;
+        return false;
     }
     else {
         i = 0;
@@ -374,9 +377,10 @@ void set_physical_parameters(std::string data_path, cloud_data* cloud)
         }
     }
     cloud->remove_layer(cloud->nb_lay - 1);
+    return true;
 }
 
-void set_molecular_conc(std::string data_path, std::string mol_name, cloud_data* cloud, double f)
+bool set_molecular_conc(std::string data_path, std::string mol_name, cloud_data* cloud, double f)
 {
     char text_line[MAX_TEXT_LINE_WIDTH];
     int mol_nb, i, j, k;
@@ -393,7 +397,7 @@ void set_molecular_conc(std::string data_path, std::string mol_name, cloud_data*
     input.open(fname.c_str());
     if (!input) {
         cout << "Cannot open file " << fname << endl;
-        exit(1);
+        return false;
     }
     else {
         input.getline(text_line, MAX_TEXT_LINE_WIDTH);
@@ -434,6 +438,7 @@ void set_molecular_conc(std::string data_path, std::string mol_name, cloud_data*
     input.open(fname.c_str());
     if (!input) {
         cout << "Cannot open file " << fname << endl;
+        return false;
     }
     else {
         while (!input.eof())
@@ -470,4 +475,5 @@ void set_molecular_conc(std::string data_path, std::string mol_name, cloud_data*
 
         cloud->lay_array[i].mol_conc *= f / (cloud->lay_array[i].zu - cloud->lay_array[i].zl);
     }
+    return true;
 }
