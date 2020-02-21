@@ -181,6 +181,55 @@ void iteration_scheme_lvg::intensity_calc(int up, int low, double *level_pop, do
 	intensity = line_emiss/line_opacity *ep1; // without dust emission
 };
 
+void iteration_scheme_lvg::calc_line_stat(const std::string& path, double* lev_pop)
+{
+    int i, j;
+    double c, line_opacity, dust_opacity, energy, g, d;
+    
+    line_parameters lp;
+    vector<line_parameters> lp_vector;
+   
+    string fname;
+    ofstream output;
+
+    for (i = 1; i < nb_mol_lev; i++) {
+        for (j = 0; j < i; j++) {
+            // the lines without population inversion are considered;
+            if ((lev_pop[j] * einst_coeff->arr[j][i] - lev_pop[i] * einst_coeff->arr[i][j]) > 0.) {
+                energy = diagram->lev_array[i].energy - diagram->lev_array[j].energy;
+                c = mol_conc / (EIGHT_PI * vel_width * energy * energy * energy);
+                
+                dust_opacity = dust->absorption(energy, dgrain_conc);
+                line_opacity = c * (einst_coeff->arr[j][i] * lev_pop[j] - einst_coeff->arr[i][j] * lev_pop[i]) + MIN_LINE_OPACITY;
+
+                g = fabs(vel_grad) / (vel_width * line_opacity); // absolute value
+                d = fabs(vel_grad) / (vel_width * dust_opacity);
+
+                lp.nbl = j;
+                lp.nbu = i;
+                lp.g = g;
+                lp.d = d;
+                lp.en = energy;
+                lp_vector.push_back(lp);
+            }
+        }
+    }
+
+    fname = path + diagram->mol.name;
+    fname += "_line_stat.txt";
+   
+    output.open(fname.c_str(), std::ios_base::out);
+    output << scientific;
+    output.precision(4);
+
+    output << "! parameters: upper, lower levels, energy(cm-1), abs(d), abs(g)" << endl;
+    for (i = 0; i < (int) lp_vector.size(); i++) {
+        output << left << setw(5) << lp_vector[i].nbu << setw(5) << lp_vector[i].nbl << setw(15) << lp_vector[i].en
+            << setw(15) << lp_vector[i].d << setw(15) << lp_vector[i].g << endl;
+    }
+    output.close();
+}
+
 
 hfs_lines::hfs_lines() : nb(0), upl0(0), lowl0(0), en0(0.)
 {;}
@@ -264,7 +313,7 @@ void hfs_lines::sort()
 }
 
 iteration_scheme_line_overlap::iteration_scheme_line_overlap(const std::string& data_path, int verbosity)
-    :iteration_scheme_lvg(data_path, verbosity) {
+    :iteration_scheme_lvg(data_path, verbosity), nb_overlap_lines(0) {
     line_overlap1 = new lvg_line_overlap_data(data_path, "lvg/line_overlap_func_p1.txt", verbosity);
     line_overlap2 = new lvg_line_overlap_data(data_path, "lvg/line_overlap_func_p2.txt", verbosity);
 }
@@ -301,6 +350,28 @@ void iteration_scheme_line_overlap::init_molecule_data(const energy_diagram* e_d
         }
     }
 }
+
+void iteration_scheme_line_overlap::set_parameters(double temp_n, double temp_e, double el_conc, double h_conc, double ph2_conc, double oh2_conc, 
+    double he_conc, double mol_conc, double vel_turb)
+{
+    double en, dx;
+    iteration_scheme_lvg::set_parameters(temp_n, temp_e, el_conc, h_conc, ph2_conc, oh2_conc, he_conc, mol_conc, vel_turb);
+
+    // calculation the number of overlapping lines
+    nb_overlap_lines = 0;
+    for (int i = 0; i < (int)line_list.size(); i++) {
+        if (line_list[i].nb > 1) {
+            en = diagram->lev_array[line_list[i].upl[0]].energy - diagram->lev_array[line_list[i].lowl[0]].energy;
+            dx = (diagram->lev_array[line_list[i].upl[0]].energy - diagram->lev_array[line_list[i].lowl[0]].energy
+                - diagram->lev_array[line_list[i].upl[1]].energy + diagram->lev_array[line_list[i].lowl[1]].energy)
+                * SPEED_OF_LIGHT / (en * vel_width); 
+            
+            if (fabs(dx) < line_overlap1->get_dx_lim())
+                nb_overlap_lines++;
+        }
+    }
+}
+
 
 void iteration_scheme_line_overlap::operator()(int dim, double* level_pop, double* f)
 {
@@ -487,44 +558,6 @@ struct line_param {
     int v_l, v_u, nb_l, nb_u;
     double g, d, ep0, ep1, ep2, sc, intens;
 };
-
-// The initialization of logarithmic grid, the dimension of the array is returned;
-int init_log_grid(double*& arr, double min_val, double max_val, int nb_points_bin);
-// The initialization of linear grid;
-void init_lin_grid(double*& arr, double min_val, double max_val, int nb);
-
-
-// The initialization of logarithmic grid;
-int init_log_grid(double*& arr, double min_val, double max_val, int nb_points_bin)
-{
-    int i, nb_ep;
-    double factor;
-
-    factor = pow(10., 1. / nb_points_bin);
-    nb_ep = (int)(log10(max_val / min_val) * nb_points_bin) + 1;
-
-    arr = new double[nb_ep];
-    arr[0] = min_val;
-
-    for (i = 1; i < nb_ep; i++) {
-        arr[i] = arr[i - 1] * factor;
-    }
-    return nb_ep;
-}
-
-// The initialization of linear grid;
-void init_lin_grid(double*& arr, double min_val, double max_val, int nb)
-{
-    int i;
-    double step = (max_val - min_val) / (nb - 1);
-
-    arr = new double[nb];
-    for (i = 0; i < nb - 1; i++) {
-        arr[i] = min_val + i * step;
-    }
-    arr[nb - 1] = max_val;
-}
-
 
 
 void iteration_scheme_lvg::calc_line_stat(const string &path, const std::string &str_id, double *level_pop)

@@ -110,6 +110,7 @@ transition_data::~transition_data()
 
 
 transition_data_container::transition_data_container(const cloud_data *cl, const energy_diagram *di, const einstein_coeff *ec) 
+    : min_optical_depth(0.01)
 {
 	int i;
 	saturated_maser_func func;
@@ -252,7 +253,7 @@ void transition_data_container::find(double *level_pop, double rel_error)
 				if (is_inverted) {
 					calc_gain(*tr_data, level_pop);
 					// the condition on optical depth value: 
-					if (tr_data->tau > 0.01) {
+					if (tr_data->tau > min_optical_depth) {
 						calc_exc_temp(*tr_data, level_pop, fixed_nb);
 						data.push_front(*tr_data);
 					}
@@ -454,16 +455,16 @@ void transition_data_container::save_transition(const std::string& fname, const 
         cout << "Error in" << SOURCE_NAME << ": can't open file to write transition data;" << endl;
     else
     {
-        outfile << left << setw(17) << "!depth(cm)" << setw(14) << "inv(cm-3)" << setw(14) << "gain(cm-1)" << setw(14) << "lum(ph/cm3/s)" 
-            << setw(14) << "pumpeffic" << setw(14) << "lossrate(s-1)" << endl;
+        outfile << left << setw(14) << "!depth(cm)" << setw(14) << "dz(cm)" << setw(14) << "inv(cm-3)" << setw(14) << "gain(cm-1)" 
+            << setw(14) << "lum(ph/cm3/s)" << setw(14) << "pumpeffic" << setw(14) << "lossrate(s-1)" << endl;
         for (i = 0; i < nb_cloud_lay; i++) 
         {
             if (i == 0) z = 0;
             else if (i == nb_cloud_lay - 1) z = cloud->lay_array[i].zu;
             else z = cloud->lay_array[i].zm;
             
-            outfile << left << setprecision(6) << setw(17) << z;
-            outfile << left << setprecision(4)
+            // absolute depth and dz are saved (not normalized), 
+            outfile << left << setprecision(4) << setw(14) << z << setw(14) << cloud->lay_array[i].dz
                 << setw(14) << tr_data->inv_arr[i]
                 << setw(14) << tr_data->gain_arr[i]
                 << setw(14) << tr_data->lum_arr[i] 

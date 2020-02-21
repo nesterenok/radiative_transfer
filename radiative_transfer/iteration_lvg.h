@@ -7,6 +7,12 @@
 #include "lvg_method_functions.h"
 #include "dust_model.h"
 
+class line_parameters {
+public:
+    int vl, vu, nbl, nbu;
+    double g, d, en;
+};
+
 class iteration_scheme_lvg
 {
 protected:
@@ -26,13 +32,14 @@ protected:
 	std::vector<const radiation_field*> ext_rad_field;
 
 public:
+    virtual int get_nb_overlap_lines() { return 0; }
 	int get_vector_dim() { return nb_mol_lev; } // is used in iteration_control class
 	double get_vel_width() { return vel_width; }
 	
 	// These function has to be called if molecule is changed:
 	virtual void init_molecule_data(const energy_diagram *, const einstein_coeff *, const collisional_transitions *);
 
-	void set_parameters(double temp_n, double temp_e, double el_conc, double h_conc, double ph2_conc, double oh2_conc, double he_conc, 
+	virtual void set_parameters(double temp_n, double temp_e, double el_conc, double h_conc, double ph2_conc, double oh2_conc, double he_conc, 
 		double mol_conc, double vel_turb);
 	void set_dust_parameters(std::vector<double> & conc, std::vector<double> & temp);
 	void set_vel_grad(double vg) { vel_grad = vg; }
@@ -48,6 +55,9 @@ public:
 	// dim is the dimension of the array;
 	virtual void operator() (int dim, double *level_pop, double *f);
 	
+    // calculation and saving of line parameters,
+    void calc_line_stat(const std::string& path, double *lev_pop);
+
     // path to the input data directory,
 	iteration_scheme_lvg(const std::string & data_path, int verbosity = 1);
 	virtual ~iteration_scheme_lvg();
@@ -76,12 +86,17 @@ public:
 class iteration_scheme_line_overlap : public iteration_scheme_lvg
 {
 protected:
+    int nb_overlap_lines;
     // lines are grouped in the sets of HF splitted lines, the list contains all lines, 
     std::vector<hfs_lines> line_list; 
     const lvg_line_overlap_data *line_overlap1, *line_overlap2;
 
 public:
+    int get_nb_overlap_lines() { return nb_overlap_lines; }
     void init_molecule_data(const energy_diagram*, const einstein_coeff*, const collisional_transitions*);
+    void set_parameters(double temp_n, double temp_e, double el_conc, double h_conc, double ph2_conc, double oh2_conc, double he_conc,
+        double mol_conc, double vel_turb);
+
     void operator() (int dim, double* level_pop, double* f);
     void intensity_calc(int u1, int l1, int u2, int l2, double* level_pop, double& intens1, double& intens2) const;
 

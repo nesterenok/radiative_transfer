@@ -34,7 +34,8 @@ public:
 class transition_data_container
 {
 protected:
-	int		t_nb, fixed_nb; // by default fixed_nb is the center layer of the cloud,
+	int		t_nb, fixed_nb;     // by default fixed_nb is the center layer of the cloud,
+    double  min_optical_depth;  // it is necessary for the function find(), by default is very low
 	double	*tau_arr, *sm_arr;
 
 	const energy_diagram	*diagram;
@@ -47,6 +48,8 @@ public:
 	
 	void set_layer_nb(int l) { fixed_nb = l; }
     int get_layer_nb() { return fixed_nb; }
+    void set_min_optical_depth(double depth) { min_optical_depth = depth; }
+
 	void calc_inv(transition_data &, double *level_pop);
     
     // check water molecule name in this routine,

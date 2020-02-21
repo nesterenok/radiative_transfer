@@ -287,8 +287,17 @@ void oh_trans_list(const energy_diagram* diagram, std::list<transition>& trans_l
         delete trans;
     }
 
-    up = diagram->get_nb(1, 0, 1.5, 1.5, 1.);	//  1612 MHz
+/*    up = diagram->get_nb(1, 0, 1.5, 1.5, 1.);	//  1612 MHz
     low = diagram->get_nb(-1, 0, 1.5, 1.5, 2.);
+
+    if (up != -1 && low != -1) {
+        trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+        trans_list.push_back(*trans);
+        delete trans;
+    }*/
+
+    up = diagram->get_nb(-1, 0, 2.5, 1.5, 3.);	//  6050 MHz
+    low = diagram->get_nb(1, 0, 2.5, 1.5, 2.);
 
     if (up != -1 && low != -1) {
         trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
@@ -296,8 +305,8 @@ void oh_trans_list(const energy_diagram* diagram, std::list<transition>& trans_l
         delete trans;
     }
 
-    up = diagram->get_nb(-1, 0, 2.5, 1.5, 3.);	//  6050 MHz
-    low = diagram->get_nb(1, 0, 2.5, 1.5, 2.);
+    up = diagram->get_nb(-1, 0, 0.5, 0.5, 1.);	//  4765 MHz
+    low = diagram->get_nb(1, 0, 0.5, 0.5, 0.);
 
     if (up != -1 && low != -1) {
         trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);

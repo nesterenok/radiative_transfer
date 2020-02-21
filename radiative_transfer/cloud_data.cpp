@@ -5,6 +5,8 @@
 #include "cloud_data.h"
 
 using namespace std;
+// must be set for radiative transfer calculations, in cm/s/cm
+#define MIN_VELOCITY_GRADIENT 3.e-14 
 #define MAX_TEXT_LINE_WIDTH 6600 // must be long enough
 
 cloud_layer::cloud_layer() :
@@ -212,7 +214,7 @@ bool set_physical_parameters(std::string data_path, cloud_data* cloud)
 {
     char text_line[MAX_TEXT_LINE_WIDTH];
     int i, j;
-    double a, z, nh, ah, ah2, ahe, opr, td, abund;
+    double a, z, nh, ah, ah2, ahe, opr, td, abund, velg_n;
 
     string fname;
     ifstream input;
@@ -240,8 +242,16 @@ bool set_physical_parameters(std::string data_path, cloud_data* cloud)
             ss.str(text_line);
             // there are two velocity gradients - first is average, second is instantaneous from MHD equations
             ss >> clayer.zl >> a >> clayer.temp_n >> a >> clayer.temp_el >> clayer.vel_n >> a >> clayer.tot_h_conc >> a >> clayer.el_conc >> a
-                >> a >> clayer.velg_n; // MHD velocity gradient
+                >> a >> velg_n; // MHD velocity gradient
 
+            if (fabs(velg_n) < MIN_VELOCITY_GRADIENT) {
+                clayer.velg_n = MIN_VELOCITY_GRADIENT;
+                if (velg_n < 0.)
+                    clayer.velg_n *= -1.;
+            }
+            else {
+                clayer.velg_n = velg_n;
+            }
             clayer.el_conc *= clayer.tot_h_conc;
             cloud->add_layer(clayer);
         }

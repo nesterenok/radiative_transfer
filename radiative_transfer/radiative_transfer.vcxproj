@@ -179,6 +179,7 @@
     <ClInclude Include="..\..\..\input_data\mathematics\interpolation.h" />
     <ClInclude Include="..\..\..\input_data\mathematics\linear_algebra.h" />
     <ClInclude Include="..\..\..\input_data\mathematics\special_functions.h" />
+    <ClInclude Include="..\..\..\input_data\mathematics\utils.h" />
     <ClInclude Include="cloud_data.h" />
     <ClInclude Include="coll_rates.h" />
     <ClInclude Include="coll_rates_ch3oh.h" />

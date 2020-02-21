@@ -19,13 +19,17 @@
 #include "maser_luminosity.h"
 
 #define NB_OF_OMP_PROCESSES 2
+#define CALC_ONLY_OH true
+#define NB_JOINED_LAYERS 3
 
 // These parameters must be the same as in the C-type shock simulations (are necessary for dust model),
 #define HE_TO_H_NB_RATIO 0.09
 #define STANDARD_NB_CR_PHOTONS 3000.
+#define MAX_NB_ITER_OH 20000
 
 using namespace std;
-const double rel_population_error = 1.e-4; // the relative population error, is used in calculations of populations and in finding of inverted transitions,
+const double rel_population_error = 1.e-5; // the relative population error, is used in calculations of populations and in finding of inverted transitions,
+//const double population_error = 1.e-8; // !!!
 
 // looking for inverted transitions of CH3OH, NH3, OH (with line overlap)
 void calc_maser_pumping(string input_data_path, string sim_data_path, string output_path);
@@ -48,7 +52,7 @@ int main()
 
     input_data_path = "C:/Users/Александр/Documents/input_data/";
     //sim_data_path = "C:/Users/Александр/Documents/Данные и графики/paper C-type shocks - new data on H-H2 collisions/output_data_2e4_magnf-b2/shock_cr1-15_25_new/";
-    sim_data_path = "C:/Users/Александр/Documents/Данные и графики/paper C-type shocks - new data on H-H2 collisions/output_data_2e4/shock_cr1-15_15/";
+    sim_data_path = "C:/Users/Александр/Documents/Данные и графики/paper C-type shocks - new data on H-H2 collisions/output_data_2e5/shock_cr1-15_20/";
     
     output_path = sim_data_path + "radiative_transfer/masers/";
 //    calc_maser_pumping(input_data_path, sim_data_path, output_path);
@@ -56,7 +60,7 @@ int main()
     output_path = sim_data_path + "radiative_transfer/masers_oh_test/";
 //    calc_oh_line_test(input_data_path, sim_data_path, output_path);
 
-    sim_data_path = "C:/Users/Александр/Documents/Данные и графики/paper C-type shocks - new data on H-H2 collisions/output_data_2e5/shock_cr1-15_";
+    sim_data_path = "C:/Users/Александр/Documents/Данные и графики/paper C-type shocks - new data on H-H2 collisions/output_data_2e4/shock_cr3-15_";
     for (i = 5; i < 100; i += 5) {
         sstr.clear();
         sstr.str("");
@@ -76,9 +80,9 @@ void calc_maser_pumping(string input_data_path, string sim_data_path, string out
 {
     bool acceleration, do_simdata_exist;
 	int verbosity = 1;
-	int isotope, nb_lev_ch3oh, nb_vibr_ch3oh, ang_mom_max, nb_lev_onh3, nb_lev_pnh3, nb_lev_oh, nb_of_dust_comp, nb_cloud_lay, iter_max_nb;
+	int i, isotope, nb_lev_ch3oh, nb_vibr_ch3oh, ang_mom_max, nb_lev_onh3, nb_lev_pnh3, nb_lev_oh, nb_of_dust_comp, nb_cloud_lay, iter_max_nb;
 	
-	double f, vel_turb, mol_mass, spin, dg_ratio, c_abund_pah;
+	double f, vel_turb, mol_mass, spin, dg_ratio, c_abund_pah, temp_stat;
 	double *ch3oh_a_popul, * ch3oh_e_popul, * onh3_popul, * pnh3_popul, * oh_popul;
 
     stringstream sstr;
@@ -116,7 +120,7 @@ void calc_maser_pumping(string input_data_path, string sim_data_path, string out
     if (!do_simdata_exist)
         return;
 
-	join_layers(cloud, 5);
+	join_layers(cloud, NB_JOINED_LAYERS);
 	nb_cloud_lay = cloud->nb_lay;
 
 	// in cm/s,
@@ -133,6 +137,7 @@ void calc_maser_pumping(string input_data_path, string sim_data_path, string out
 	iteration_control<iteration_scheme_lvg> it_control(it_scheme_lvg);
 	it_control.set_accel_parameters(25, 4, 5);
 
+#if (!CALC_ONLY_OH)
     // The calculation of the A-class methanol populations;
 	// Max nb of levels for states vt=0,1,2 for which spectroscopic data are available is 1455 (angular momentum <= 22); 
 	// collisional coefficients are available for 3*256 levels belonging to vt=0,1,2 and having angular momentum <=15;
@@ -187,6 +192,7 @@ void calc_maser_pumping(string input_data_path, string sim_data_path, string out
         td_it++;
     }
     // adding more transitions:
+    // the limiting luminosity is not calculated for these transitions,
     trans_data_ch3oh_a->add(trans_list, ch3oh_a_popul);
 
     sstr.clear();
@@ -359,6 +365,7 @@ void calc_maser_pumping(string input_data_path, string sim_data_path, string out
 	transition_data_container* trans_data_pnh3
 		= new transition_data_container(cloud, pnh3_levels, pnh3_einst);
 
+    // the limiting luminosity is calculated only for inverted transitions,
     trans_data_pnh3->find(pnh3_popul, rel_population_error);    
     lim_luminosity_lvg(it_scheme_lvg, trans_data_pnh3, cloud, pnh3_levels, pnh3_einst, pnh3_coll, pnh3_popul);
 	
@@ -381,10 +388,11 @@ void calc_maser_pumping(string input_data_path, string sim_data_path, string out
 	delete pnh3_einst;
 	delete pnh3_coll;
     delete trans_data_pnh3;
+#endif
 
     // OH with hyperfine levels, 24, 56
     // up to the HF 20 levels may be involved in the pumping of the maser (Gray, Proc. IAU Symp. 287, 2012)  
-    nb_lev_oh = 24;
+    nb_lev_oh = 56;
     oh_popul = new double[nb_cloud_lay * nb_lev_oh];
 
     mol_mass = 17. * ATOMIC_MASS_UNIT;
@@ -412,14 +420,20 @@ void calc_maser_pumping(string input_data_path, string sim_data_path, string out
     iteration_control<iteration_scheme_lvg> it_control_loverlap(it_scheme_loverlap);
 
     calc_molecular_populations(cloud, it_scheme_loverlap, it_control_loverlap, oh_levels, oh_einst, oh_coll, oh_popul, nb_lev_oh,
-        iter_max_nb = 10000, acceleration = false);
+        iter_max_nb = MAX_NB_ITER_OH, acceleration = false);
 
     transition_data_container* trans_data_oh
         = new transition_data_container(cloud, oh_levels, oh_einst);
 
-    trans_data_oh->find(oh_popul, rel_population_error);
-    lim_luminosity_lvg(it_scheme_loverlap, trans_data_oh, cloud, oh_levels, oh_einst, oh_coll, oh_popul);
+    trans_data_oh->find(oh_popul, rel_population_error); 
+    
+    // adding transitions,
+    trans_list.clear();
+    oh_trans_list(oh_levels, trans_list);
+    trans_data_oh->add(trans_list, oh_popul);
 
+    lim_luminosity_lvg(it_scheme_loverlap, trans_data_oh, cloud, oh_levels, oh_einst, oh_coll, oh_popul);
+    
     td_it = trans_data_oh->data.begin();
     while (td_it != trans_data_oh->data.end())
     {
@@ -432,10 +446,6 @@ void calc_maser_pumping(string input_data_path, string sim_data_path, string out
         td_it++;
     }
     
-    trans_list.clear();
-    oh_trans_list(oh_levels, trans_list);
-    trans_data_oh->add(trans_list, oh_popul);
-
     sstr.clear();
     sstr.str("");
     sstr << output_path + "inv_trans_" << oh_mol.name << ".txt";
@@ -445,6 +455,24 @@ void calc_maser_pumping(string input_data_path, string sim_data_path, string out
     sstr.str("");
     sstr << output_path + "radtr_data_" + oh_mol.name + ".txt";
     save_mol_data(sstr.str(), cloud, oh_popul, nb_lev_oh);
+
+    // line statistic for one cloud layer:
+    i = 0;
+    temp_stat = 100.; // in K
+    while (cloud->lay_array[i].temp_n < cloud->lay_array[i + 1].temp_n) {
+        i++;
+    }
+    while (cloud->lay_array[i].temp_n > temp_stat && i < nb_cloud_lay - 1) {
+        i++;
+    }
+
+    clayer = cloud->lay_array[i];
+    it_scheme_loverlap->set_vel_grad(clayer.velg_n);
+    it_scheme_loverlap->set_dust_parameters(clayer.dust_grain_conc, clayer.dust_grain_temp);
+    it_scheme_loverlap->set_parameters(clayer.temp_n, clayer.temp_el, clayer.el_conc, clayer.h_conc, clayer.ph2_conc, clayer.oh2_conc, clayer.he_conc,
+        clayer.mol_conc, clayer.vel_turb);
+
+    it_scheme_loverlap->calc_line_stat(output_path, oh_popul);
 
     delete[] oh_popul;
     delete oh_levels;
@@ -479,7 +507,6 @@ void calc_oh_line_test(string input_data_path, string sim_data_path, string outp
     nb_of_dust_comp = dust->nb_of_comp;
 
     // physical parameters of the particular shock model 
-    cloud_layer clayer;
     cloud_data* cloud
         = new cloud_data();
 
@@ -489,7 +516,7 @@ void calc_oh_line_test(string input_data_path, string sim_data_path, string outp
 
     cloud->save_data(output_path + "phys_param1.txt");
 
-    join_layers(cloud, 5);
+    join_layers(cloud, NB_JOINED_LAYERS);
     cloud->save_data(output_path + "phys_param2.txt");
     nb_cloud_lay = cloud->nb_lay;
 
@@ -505,7 +532,7 @@ void calc_oh_line_test(string input_data_path, string sim_data_path, string outp
     iteration_control<iteration_scheme_lvg> it_control(it_scheme_lvg);
    
     // OH with hyperfine levels, 24, 56
-    nb_lev_oh = 24;
+    nb_lev_oh = 56;
     oh_popul = new double[nb_cloud_lay * nb_lev_oh];
 
     mol_mass = 17. * ATOMIC_MASS_UNIT;
@@ -526,12 +553,17 @@ void calc_oh_line_test(string input_data_path, string sim_data_path, string outp
 
     it_scheme_lvg->init_molecule_data(oh_levels, oh_einst, oh_coll);
     calc_molecular_populations(cloud, it_scheme_lvg, it_control, oh_levels, oh_einst, oh_coll, oh_popul, nb_lev_oh, 
-        iter_max_nb = 10000, acceleration = false);
+        iter_max_nb = MAX_NB_ITER_OH, acceleration = false);
 
     transition_data_container* trans_data_oh
         = new transition_data_container(cloud, oh_levels, oh_einst);
  
     trans_data_oh->find(oh_popul, rel_population_error);
+       
+    trans_list.clear();
+    oh_trans_list(oh_levels, trans_list);
+    trans_data_oh->add(trans_list, oh_popul);
+
     lim_luminosity_lvg(it_scheme_lvg, trans_data_oh, cloud, oh_levels, oh_einst, oh_coll, oh_popul);
     
     td_it = trans_data_oh->data.begin();
@@ -546,10 +578,6 @@ void calc_oh_line_test(string input_data_path, string sim_data_path, string outp
         td_it++;
     }
    
-    trans_list.clear();
-    oh_trans_list(oh_levels, trans_list);
-    trans_data_oh->add(trans_list, oh_popul);
-
     sstr.clear();
     sstr.str("");
     sstr << output_path + "inv_trans_" << oh_mol.name << ".txt";
@@ -595,6 +623,10 @@ void calc_molecular_populations(cloud_data* cloud, iteration_scheme_lvg* it_sche
             clayer.mol_conc, clayer.vel_turb);
 
         cout << "layer nb " << lay_nb << endl;
+        
+        i = it_scheme_lvg->get_nb_overlap_lines();
+        if (i > 0) 
+            cout << "nb of overlapped lines " << i << endl;
 
         is_solution_found = false;
         if (lay_nb > 0 && is_solution_found_prev) {
@@ -611,12 +643,12 @@ void calc_molecular_populations(cloud_data* cloud, iteration_scheme_lvg* it_sche
             is_solution_found =
                 it_control.calculate_populations(mol_popul + lay_nb * nb_lev, iter_max_nb, rel_population_error, acceleration, verbosity = 1);
         }
-        if (!is_solution_found) {
+        /*if (!is_solution_found) {
             boltzmann_populations(clayer.temp_n, mol_popul + lay_nb * nb_lev, mol_levels);
 
             is_solution_found =
                 it_control.calculate_populations(mol_popul + lay_nb * nb_lev, iter_max_nb, rel_population_error, acceleration, verbosity = 1);
-        }
+        }*/
         if (!is_solution_found) {
             bad_layers.push_back(lay_nb);
         }
