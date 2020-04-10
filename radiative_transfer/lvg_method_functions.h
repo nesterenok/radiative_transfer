@@ -16,7 +16,8 @@ public:
 };
 
 // Class containing the table with escape probability values;
-// gamma = 1./( line absorp coeff * resonance length), delta = 1./( continuum absorp coeff * resonance length),
+// gamma = 1./( line absorp coeff * resonance length), delta = 1./( continuum absorp coeff * resonance length), 
+// gamma > 0, delta > 0 for these data,
 // across the resonance length the flow velocity shifts on the magnitude of the thermal velocity, 
 // the function returns the value v, one-sided escape probability is p = 0.5(1-v), 	
 class lvg_method_data {
@@ -51,7 +52,6 @@ public:
 };
 
 // not derived from previous classes,
-// Note!!! the current version of lvg data for second line are normalized incorrectly,
 class lvg_line_overlap_data
 {
 protected:
@@ -60,7 +60,8 @@ protected:
 
 public:
     // logarithmic interpolation for delta, linear interpolation for other parameters,
-    // delta for first line, gamma = g1, gamma_ratio = g2/g1, dx = (fr1 - fr2) / dfr, linear interpolation,
+    // gamma, delta for first line, delta = d1, gamma = g1, gamma_ratio = g2/g1, dx = (fr1 - fr2) / dfr, linear interpolation,
+    // gamma > 0, delta > 0 (for gamma < 0, delta < 0, one has to  gamma -> -gamma, delta -> -delta, dx -> -dx)
     double get_esc_func(double gamma, double delta, double gamma_ratio, double delta_x) const;
     double get_dx_lim() const { return fabs(dx_arr[0]); } // the array values may not be symmetric,
 

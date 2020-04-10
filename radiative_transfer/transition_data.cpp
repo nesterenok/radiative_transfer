@@ -13,7 +13,7 @@
 using namespace std;
 
 transition_data::transition_data(int nb_lay, const energy_level &low, const energy_level &up)
-: inv(0.), gain(0.), lum(0.), tau(0.), exc_temp(0.), tau_sat(0.)
+: inv(0.), gain(0.), lum(0.), tau(0.), tau_sat(0.)
 {
 	nb_cloud_lay = nb_lay;
 	trans = new transition(low, up);
@@ -32,6 +32,9 @@ transition_data::transition_data(int nb_lay, const energy_level &low, const ener
 
     loss_rate_arr = new double[nb_cloud_lay];
     memset(loss_rate_arr, 0, nb_cloud_lay * sizeof(double));
+
+    exc_temp_arr = new double[nb_cloud_lay];
+    memset(exc_temp_arr, 0, nb_cloud_lay * sizeof(double));
 }
 
 transition_data::transition_data(const transition_data &obj)
@@ -44,8 +47,7 @@ transition_data::transition_data(const transition_data &obj)
 	lum = obj.lum;
 	tau = obj.tau;
 	tau_sat = obj.tau_sat;
-	exc_temp = obj.exc_temp;
-	
+
 	inv_arr = new double [nb_cloud_lay];
 	memcpy(inv_arr, obj.inv_arr, nb_cloud_lay *sizeof(double));
 
@@ -60,6 +62,9 @@ transition_data::transition_data(const transition_data &obj)
 
     loss_rate_arr = new double[nb_cloud_lay];
     memcpy(loss_rate_arr, obj.loss_rate_arr, nb_cloud_lay * sizeof(double));
+
+    exc_temp_arr = new double[nb_cloud_lay];
+    memcpy(exc_temp_arr, obj.exc_temp_arr, nb_cloud_lay * sizeof(double));
 }
 
 transition_data& transition_data::operator = (const transition_data &obj)
@@ -73,7 +78,6 @@ transition_data& transition_data::operator = (const transition_data &obj)
 	lum = obj.lum;
 	tau = obj.tau;
 	tau_sat = obj.tau_sat;
-	exc_temp = obj.exc_temp;
 	
 	delete [] inv_arr;
 	inv_arr = new double [nb_cloud_lay];
@@ -95,6 +99,10 @@ transition_data& transition_data::operator = (const transition_data &obj)
     loss_rate_arr = new double[nb_cloud_lay];
     memcpy(loss_rate_arr, obj.loss_rate_arr, nb_cloud_lay * sizeof(double));
 
+    delete[] exc_temp_arr;
+    exc_temp_arr = new double[nb_cloud_lay];
+    memcpy(exc_temp_arr, obj.exc_temp_arr, nb_cloud_lay * sizeof(double));
+
 	return *this;
 }
 
@@ -106,6 +114,7 @@ transition_data::~transition_data()
     delete[] lum_arr;
     delete[] pump_eff_arr;
     delete[] loss_rate_arr;
+    delete[] exc_temp_arr;
 }
 
 
@@ -121,14 +130,12 @@ transition_data_container::transition_data_container(const cloud_data *cl, const
 
 	nb_mol_lev = diagram->nb_lev;
 	nb_cloud_lay = cloud->nb_lay;
-	fixed_nb = nb_cloud_lay / 2;
 
 	t_nb = 35;
 	tau_arr = new double [t_nb];
 	sm_arr = new double [t_nb];
 
-	for (i = 0; i < t_nb; i++)
-	{
+	for (i = 0; i < t_nb; i++) {
 		tau_arr[i] = i;
 		func.tau = tau_arr[i];
 		sm_arr[i] = qromb<saturated_maser_func>(func, -5., 5., 1.e-5);
@@ -170,14 +177,17 @@ void transition_data_container::calc_inv(transition_data &trans_data, double *le
 	trans_data.inv /= cloud->get_height();
 }
 
-void transition_data_container::calc_exc_temp(transition_data& trans_data, double* level_pop, int lay_nb)
+void transition_data_container::calc_exc_temp(transition_data& trans_data, double* level_pop)
 {
 	double low_pop, up_pop;
-	low_pop = level_pop[lay_nb * nb_mol_lev + trans_data.trans->low_lev.nb];
-	up_pop = level_pop[lay_nb * nb_mol_lev + trans_data.trans->up_lev.nb];
-	
-	trans_data.exc_temp = CM_INVERSE_TO_KELVINS *trans_data.trans->energy
-		/log((low_pop *trans_data.trans->up_lev.g)/(up_pop *trans_data.trans->low_lev.g));
+    for (int lay = 0; lay < nb_cloud_lay; lay++)
+    {
+        low_pop = level_pop[lay * nb_mol_lev + trans_data.trans->low_lev.nb];
+        up_pop = level_pop[lay * nb_mol_lev + trans_data.trans->up_lev.nb];
+
+        trans_data.exc_temp_arr[lay] = CM_INVERSE_TO_KELVINS * trans_data.trans->energy
+            / log((low_pop * trans_data.trans->up_lev.g) / (up_pop * trans_data.trans->low_lev.g));
+    }
 }
 
 // The population inversion must be calculated before the function call;
@@ -247,14 +257,15 @@ void transition_data_container::find(double *level_pop, double rel_error)
 				for (lay = 0; lay < nb_cloud_lay; lay++) {
 					// the inversion must be higher than population error;
 					is_inverted = (tr_data->inv_arr[lay] *diagram->lev_array[i].g > rel_error *level_pop[i]);
-					if (is_inverted) break;
+					if (is_inverted) 
+                        break;
 				}
 				
 				if (is_inverted) {
 					calc_gain(*tr_data, level_pop);
 					// the condition on optical depth value: 
 					if (tr_data->tau > min_optical_depth) {
-						calc_exc_temp(*tr_data, level_pop, fixed_nb);
+						calc_exc_temp(*tr_data, level_pop);
 						data.push_front(*tr_data);
 					}
 				}
@@ -273,9 +284,8 @@ void transition_data_container::add(list<transition>& trans_list, double* level_
     list<transition_data>::iterator it_d;
 
     it = trans_list.begin();
-    while (it != trans_list.end())
-    {
-        // The search of the transition in the list of inverted transitions:
+    while (it != trans_list.end()) {
+        // the search of the transition in the list of inverted transitions:
         is_found = false;
         it_d = data.begin();
         while (it_d != data.end())
@@ -291,7 +301,7 @@ void transition_data_container::add(list<transition>& trans_list, double* level_
             tr_data = new transition_data(nb_cloud_lay, it->low_lev, it->up_lev);
             calc_inv(*tr_data, level_pop);
             calc_gain(*tr_data, level_pop);
-            calc_exc_temp(*tr_data, level_pop, fixed_nb);
+            calc_exc_temp(*tr_data, level_pop);
 
             data.push_front(*tr_data);
             delete tr_data;
@@ -303,33 +313,40 @@ void transition_data_container::add(list<transition>& trans_list, double* level_
 
 void transition_data_container::calc_saturation_depth(double beaming_factor)
 {
-	int i;
-	double intensity, source_function;
+	int i, l, lay;
+	double intensity, source_function, exc_temp;
 	list<transition_data>::iterator it;
 
 	it = data.begin();
 	while (it != data.end())
 	{
 		it->tau_sat = 0.;
-		if (it->exc_temp < 0.) 
-		{
-			source_function = 1./(1. - exp(it->trans->energy *CM_INVERSE_TO_KELVINS/it->exc_temp));
-			intensity = it->loss_rate_arr[fixed_nb]
-				/(einst_coeff->arr[it->trans->up_lev.nb][it->trans->low_lev.nb] *beaming_factor *source_function);
-		
-			locate_index(sm_arr, t_nb, intensity, i);
+        exc_temp = -1.e+99;
+        
+        for (lay = 0; lay < nb_cloud_lay; lay++) {
+            if (it->exc_temp_arr[lay] < 0. && it->exc_temp_arr[lay] > exc_temp) {
+                exc_temp = it->exc_temp_arr[lay];
+                l = lay;
+            }
+        }
+        if (exc_temp > -1.e+98) {
+            source_function = 1. / (1. - exp(it->trans->energy * CM_INVERSE_TO_KELVINS / exc_temp));
+            intensity = it->loss_rate_arr[l]
+                / (einst_coeff->arr[it->trans->up_lev.nb][it->trans->low_lev.nb] * beaming_factor * source_function);
+
+            locate_index(sm_arr, t_nb, intensity, i);
             if (i >= 0 && i < t_nb - 1)
                 it->tau_sat = tau_arr[i] + (tau_arr[i + 1] - tau_arr[i]) * (intensity - sm_arr[i]) / (sm_arr[i + 1] - sm_arr[i]);
             else if (i >= t_nb - 1)
                 it->tau_sat = tau_arr[t_nb - 1];
-		}
+        }       
 		it++;
 	}
 }
 
 void transition_data_container::save_full_data(const string & fname) const
 {
-	int i, p;
+	int i, p, fixed_nb;
 	double z;
 	
 	ofstream outfile;
@@ -338,6 +355,7 @@ void transition_data_container::save_full_data(const string & fname) const
 	outfile.open(fname.c_str());
 	outfile.setf(ios::scientific);
 	
+    fixed_nb = nb_cloud_lay / 2;
 	if (!outfile.is_open()) 
 		cout << "Error in" << SOURCE_NAME << ": can't open file to write transition data;" << endl;
 	else 
@@ -403,13 +421,13 @@ void transition_data_container::save_full_data(const string & fname) const
 				<< setw(15) << "mean gain " << it->gain << " cm-1" << endl
 				<< setw(15) << "optical depth " << it->tau << endl
 				<< setw(15) << "mean lum " << it->lum << " ph/cm3/s" << endl
-				<< "At fixed layer:" << endl
-				<< setw(15) << "exc temp " << it->exc_temp << " K" << endl
+				<< "At layer with higher inversion:" << endl
 				<< setw(15) << "satur tau " << it->tau_sat << endl << endl;
 			
 			outfile << left << setw(17) << "relative depth " 
 				<< setw(13) << "inversion "
 				<< setw(13) << "gain "
+                << setw(13) << "exc temp"
 				<< setw(13) << "luminosity " 
                 << setw(13) << "pump effic "
                 << setw(13) << "loss rate " << endl;
@@ -421,7 +439,7 @@ void transition_data_container::save_full_data(const string & fname) const
 				else z = cloud->lay_array[i].zm;
 				
 				// setting the precision
-				p = (int) fabs(log10(1.-z/cloud->get_height())) + 2;
+				p = (int) fabs(log10(1. - z/cloud->get_height())) + 2;
 				if (p < 3) p = 3;
 				if (p > 9) p = 9;
 
@@ -429,6 +447,7 @@ void transition_data_container::save_full_data(const string & fname) const
 				outfile << left << setprecision(3) 
 					<< setw(13) << it->inv_arr[i] 
 					<< setw(13) << it->gain_arr[i] 
+                    << setw(13) << it->exc_temp_arr[i]
 					<< setw(13) << it->lum_arr[i] 
                     << setw(13) << it->pump_eff_arr[i]
                     << setw(13) << it->loss_rate_arr[i] << endl;
@@ -445,7 +464,6 @@ void transition_data_container::save_transition(const std::string& fname, const 
     int i;
     double z;
     ofstream outfile;
-  
     const transition_data* tr_data = get(&trans);
 
     outfile.open(fname.c_str());
@@ -456,7 +474,7 @@ void transition_data_container::save_transition(const std::string& fname, const 
     else
     {
         outfile << left << setw(14) << "!depth(cm)" << setw(14) << "dz(cm)" << setw(14) << "inv(cm-3)" << setw(14) << "gain(cm-1)" 
-            << setw(14) << "lum(ph/cm3/s)" << setw(14) << "pumpeffic" << setw(14) << "lossrate(s-1)" << endl;
+            << setw(14) << "exctemp(K)" << setw(14) << "lum(ph/cm3/s)" << setw(14) << "pumpeffic" << setw(14) << "lossrate(s-1)" << endl;
         for (i = 0; i < nb_cloud_lay; i++) 
         {
             if (i == 0) z = 0;
@@ -467,6 +485,7 @@ void transition_data_container::save_transition(const std::string& fname, const 
             outfile << left << setprecision(4) << setw(14) << z << setw(14) << cloud->lay_array[i].dz
                 << setw(14) << tr_data->inv_arr[i]
                 << setw(14) << tr_data->gain_arr[i]
+                << setw(14) << tr_data->exc_temp_arr[i]
                 << setw(14) << tr_data->lum_arr[i] 
                 << setw(14) << tr_data->pump_eff_arr[i]
                 << setw(14) << tr_data->loss_rate_arr[i] << endl;
@@ -477,6 +496,7 @@ void transition_data_container::save_transition(const std::string& fname, const 
 
 void transition_data_container::save_short_data(int process_nb, const string & fname) const
 {
+    int fixed_nb;
 	double param1;
 	ofstream outfile;
 	list<transition_data>::const_iterator it;
@@ -486,10 +506,10 @@ void transition_data_container::save_short_data(int process_nb, const string & f
 	
 	if (!outfile.is_open()) 
         cout << "Error in" << SOURCE_NAME << ": can't open file to write transition data;" << endl;
-	else 
-	{
-		// Note: only the parameter of the first radiation field is included;
-		if (!cloud->ext_rad_field.empty()) 
+	else {
+        fixed_nb = nb_cloud_lay / 2;
+
+		if (!cloud->ext_rad_field.empty()) // note: only the parameter of the first radiation field is included;
 			param1 = cloud->ext_rad_field[0]->get_dilution();
 		else param1 = 0.;
 
@@ -513,7 +533,7 @@ void transition_data_container::save_short_data(int process_nb, const string & f
 				<< setw(5) << it->trans->up_lev.k2 << setw(5) << it->trans->low_lev.v << setw(5) << it->trans->low_lev.j 
 				<< setw(5) << it->trans->low_lev.k1 << setw(5) << it->trans->low_lev.k2 << setw(16) << setprecision(8) << it->trans->freq 
 				<< setw(15) << setprecision(4) << it->inv << setw(15) << it->gain << setw(15) << it->lum << setw(15) << it->tau 
-				<< setw(13) << it->exc_temp << setw(13) << setprecision(2) << it->tau_sat << endl; 	
+				<< setw(13) << it->exc_temp_arr[fixed_nb] << setw(13) << setprecision(2) << it->tau_sat << endl;
 			it++;
 		}
 		outfile.close();

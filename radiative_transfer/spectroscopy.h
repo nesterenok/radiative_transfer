@@ -36,7 +36,7 @@ class molecule
 {
 public:
 	int isotop;
-	double spin, mass; 
+	double spin, mass; // the mass must be in [g]
 	std::string	name; // the symbol defining the spin isomer must be included in the name
 	
 	molecule(const std::string& n, int is, double m, double sp = -1.);
@@ -52,10 +52,12 @@ public:
 	double j, k1, k2, spin, energy, hf;
 	std::string name;
 
-	// The relation operators are needed to sort by energy; the levels are equal if all quantum numbers coincide:
+	// The relation operators are needed to sort by energy; the levels are equal if all quantum numbers coincide,
+    // for the ions the variables "name" and "g" define the level 
 	bool operator == (const energy_level &obj) const {
 		return (v == obj.v && syminv == obj.syminv && rounding(2.*j) == rounding(2.*obj.j) && rounding(2.*k1) == rounding(2.*obj.k1) 
-			&& rounding(2.*k2) == rounding(2.*obj.k2) && rounding(2.*hf) == rounding(2.*obj.hf));
+			&& rounding(2.*k2) == rounding(2.*obj.k2) && rounding(2.*hf) == rounding(2.*obj.hf) 
+            && name == obj.name && g == obj.g);
 	}
 	bool operator != (const energy_level &obj) const {return !(*this == obj);}
 	bool operator < (const energy_level &obj) const {return (energy < obj.energy && !(*this == obj));}	

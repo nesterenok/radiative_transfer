@@ -11,11 +11,12 @@
 class transition_data
 {
 public:
-	int		nb_cloud_lay;
-    // population inversion = n_up/g_up - n_l/g_l [cm-3], gain > 0 for amplification [cm-1], 
-    // pump efficiency is dimensionless, loss rate in [s-1]
-	double	inv, gain, lum, tau, exc_temp, tau_sat; 
-	double	*inv_arr, *gain_arr, *lum_arr, *pump_eff_arr, *loss_rate_arr;
+	int nb_cloud_lay;
+    // population inversion = n_up/g_up - n_l/g_l [cm-3], gain > 0 for amplification [cm-1], exc_temp < 0 [K]
+    // average value of the gain over entire cloud, optical depth summed over regions with positive gain, 
+	double inv, gain, lum, tau, tau_sat;  
+    // pump efficiency = inversion/(n_up/g_up + n_l/g_l) - is dimensionless, loss rate in [s-1], luminosity in [cm-3 s-1] 
+    double *inv_arr, *gain_arr, *lum_arr, *pump_eff_arr, *loss_rate_arr, *exc_temp_arr;
 
 	const transition *trans;
 	
@@ -34,7 +35,7 @@ public:
 class transition_data_container
 {
 protected:
-	int		t_nb, fixed_nb;     // by default fixed_nb is the center layer of the cloud,
+	int		t_nb;
     double  min_optical_depth;  // it is necessary for the function find(), by default is very low
 	double	*tau_arr, *sm_arr;
 
@@ -46,26 +47,24 @@ public:
 	int nb_mol_lev, nb_cloud_lay;
 	std::list<transition_data> data;
 	
-	void set_layer_nb(int l) { fixed_nb = l; }
-    int get_layer_nb() { return fixed_nb; }
     void set_min_optical_depth(double depth) { min_optical_depth = depth; }
-
 	void calc_inv(transition_data &, double *level_pop);
     
-    // check water molecule name in this routine,
-    // the calculated gain takes into account the absorption by dust; gain and tau are calculated,
+    // check water molecule name in this routine, the calculated gain takes into account the absorption by dust,
+    // gain and tau are calculated,
 	void calc_gain(transition_data &, double *level_pop);
 
-	// the excitation temperature of the levels is calculated for a given cloud layer;
-	void calc_exc_temp(transition_data&, double* level_pop, int lay_nb);
+	// the excitation temperature of the levels is calculated;
+	void calc_exc_temp(transition_data&, double* level_pop);
 	
     // calculates parameter tau_sat,
     // the parameter loss_rate must be calculated (the function lim_luminosity_lvg must be called before),
     void calc_saturation_depth(double beaming_factor);
     
-	// the function deletes the old data on inverted transitions, must be called first, 
-    // the transition is added if: 1. the population inversion in one layer > population error; 2. optical depth is > 0.01,
+	// the function deletes the old data on inverted transitions, must be called first,    
     // the inversion, gain and excitation temperature are calculated,
+    // the transition is added if:
+    // 1. the population inversion in one layer > population error; 2. optical depth is > min_optical_depth,
 	void find(double *level_pop, double rel_error);
 
     // must be called after the previous function; the inversion, gain and excitation temperature are calculated,

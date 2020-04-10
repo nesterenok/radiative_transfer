@@ -12,7 +12,7 @@ public:
 };
 
 // data on OH-He collisions, 46 lowest rotational levels of ground vibrational state of OH are considered, 5 < T < 500 K; 
-// there is a discrepancy betweeb HITRAN 2016 and adopted level list for these data for 45,46 levels,
+// there is a discrepancy between HITRAN 2016 and adopted level list for these data for 45,46 levels,
 // Klos et al., Chemical Physics Letters 445, 12 (2007);
 class oh_he_coll_data : public collision_data
 {

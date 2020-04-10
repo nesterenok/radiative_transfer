@@ -4,13 +4,13 @@
 #include "dust_model.h"
 
 class cloud_data;
-void join_layers(cloud_data *cloud, int nb); // the data is averaged over the group of nb layers,
+// the data are averaged over the group of nb layers, the last n < nb layers are removed,
+void join_layers(cloud_data *cloud, int nb); 
 
-// Reading the data provided by the simulation of shock waves, 
-// the full data path must be given,
-// what about small velocity gradients?
+// Reading the data provided by the simulation of shock waves, the full data path must be given,
+// all old data is deleted, initializes all the data except mol_conc and vel_turb,
 bool set_physical_parameters(std::string data_path, cloud_data* cloud);
-// the specimen concentration is multiplied by factor f,
+// the specimen concentration is multiplied by factor f (in the case of spin isomers, e.g. o-H2 and p-H2)
 bool set_molecular_conc(std::string data_path, std::string mol_name, cloud_data* cloud, double f = 1.);
 
 // The cloud layer class
@@ -20,10 +20,11 @@ public:
 	// layer coordinates,
 	double zl, zu, dz, zm;
 	// physical parameters of the gas,
-	double temp_n, temp_el, vel_n, velg_n, tot_h_conc, he_conc, h_conc, oh2_conc, ph2_conc, el_conc, mol_conc, h2_opr, vel_turb, av_temp_d;
+	double temp_n, temp_el, av_temp_d, vel_n, velg_n, tot_h_conc, he_conc, h_conc, oh2_conc, ph2_conc, el_conc, mol_conc, h2_opr, vel_turb;
 	
-	// dust parameters, check the dust model used in simulations
-	std::vector<double>  dust_grain_temp, dust_grain_conc;
+	// dust may contain several components having their own size, material, 
+    // check the dust model used in simulations
+	std::vector<double>  dust_grain_temp, dust_grain_conc; // must have the same size 
 	
 	void set_vel_turb(double vt) { vel_turb = vt; }
 	void set_gas_temp(double tn) { temp_n = tn; }
@@ -49,8 +50,7 @@ public:
 class cloud_data
 {
 public:
-	int nb_lay; // nb of cloud layers
-	
+	int nb_lay; // nb of cloud layers	
 	const dust_model* dust;
 	std::vector<const radiation_field*> ext_rad_field;
 	std::vector<cloud_layer> lay_array;

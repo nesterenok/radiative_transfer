@@ -19,24 +19,36 @@ dynamic_array::dynamic_array(int d)
 	arr = new double [dim];
 	memset(arr, 0, dim*sizeof(double));
 }
+
 dynamic_array::dynamic_array(int d, double *arr2)
 {
 	dim = d;
 	arr = new double [dim];
 	memcpy(arr, arr2, dim*sizeof(double));
 }
-dynamic_array::~dynamic_array()
-{
+
+dynamic_array::~dynamic_array() {
 	delete [] arr;
 }
-dynamic_array::dynamic_array(const dynamic_array &d_a)
+
+dynamic_array::dynamic_array(const dynamic_array &obj)
 {
-	dim = d_a.dim;
+	dim = obj.dim;
 	arr = new double [dim];
-	memcpy(arr, d_a.arr, dim*sizeof(double));
+	memcpy(arr, obj.arr, dim*sizeof(double));
 }
 
-// The physical parameters in collisional_trensitions object have to be initialized befor the function call; 
+dynamic_array& dynamic_array::operator = (const dynamic_array& obj)
+{
+    dim = obj.dim;
+    delete[] arr;
+    arr = new double[dim];
+    
+    memcpy(arr, obj.arr, dim * sizeof(double));  
+    return *this;
+}
+
+// The physical parameters in collisional_transitions object have to be initialized before the function call; 
 void boundary_layer_populations(double *arr, const energy_diagram *diagram, const einstein_coeff *e_coeff, const collisional_transitions *coll_trans,
 	double temp_n, double temp_el, double el_conc, double h_conc, double ph2_conc, double oh2_conc, double he_conc)
 {
@@ -54,8 +66,7 @@ void boundary_layer_populations(double *arr, const energy_diagram *diagram, cons
 	memset(*matrix, 0, nb_mol_lev*nb_mol_lev*sizeof(double));
 	memset(arr, 0, nb_mol_lev*sizeof(double));
 	
-	for (i = 1; i < nb_mol_lev; i++)
-	{
+	for (i = 1; i < nb_mol_lev; i++) {
 		for (j = 0; j < i; j++)
 		{
 			coll_trans->get_rate_neutrals(diagram->lev_array[i], diagram->lev_array[j], down, up, temp_n, coll_partn_conc, indices);
@@ -74,10 +85,14 @@ void boundary_layer_populations(double *arr, const energy_diagram *diagram, cons
 	arr[0] = 1.;
 	
 	lu_matrix_solve(matrix, arr, nb_mol_lev);
-	free_2d_array<double>(matrix);	
+	free_2d_array<double>(matrix);
+    delete[] indices;
+    delete[] coll_partn_conc;
 }
 
 /*
+//void init_slab_popul(const energy_diagram *, const einstein_coeff *, collisional_transitions *, double *populations, int verbosity=1);
+
 // The function calculates the initial populations. The cloud is approximated by a single layer. 
 // The iteration technique is implemented. The initial guess for populations is Boltzmann or "boundary layer" distribution.
 void init_slab_popul(const slab_cloud *sl_cloud, const energy_diagram *diagram, const einstein_coeff *einst_coeff, 

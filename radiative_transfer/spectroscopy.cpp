@@ -17,6 +17,7 @@
 		Check for errors.
 	25.04.2018. Angular momentum and its projections on molecular axes are float pointing values. OH molecule data were added.
 	10.05.2018. NH3 molecule data were added.
+    06.04.2020. The energy_level class, operator == was changed.
 */
 
 #ifndef _USE_MATH_DEFINES

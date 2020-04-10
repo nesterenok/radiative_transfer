@@ -1,6 +1,6 @@
 
 // 27.04.2018
-//
+// 01.04.2020 - check for errors in HF data;
 //
 
 #include <stdio.h>
@@ -237,6 +237,7 @@ oh_hf_he_coll_data::oh_hf_he_coll_data(const std::string path, const energy_diag
 // The class calculates collisional rates
 //
 
+// Without HF splitting
 oh_collisions::oh_collisions(const string &data_path, const energy_diagram* oh_di, int verbosity)
 {
 	bool is_h2_j0;
@@ -291,12 +292,12 @@ void oh_collisions::get_rate_neutrals(const energy_level &up_lev, const energy_l
 	else down_rate = 0.;
 }
 
-
+// for data taking into account HF splitting
 oh_hf_collisions::oh_hf_collisions(const string& data_path, const energy_diagram* oh_di, int verbosity)
 {
     bool coll_partner_is_ortho;
     if (verbosity)
-        cout << "OH collisional rate coefficients are being initializing..." << endl;
+        cout << "OH collisional rate coefficients (including HF splitting) are being initializing..." << endl;
 
     nb_lev = oh_di->nb_lev;
 
@@ -328,7 +329,7 @@ void oh_hf_collisions::set_gas_param(double temp_neutrals, double temp_el, doubl
     concentration[2] = oh2_conc;
 }
 
-// The energy of the first level is higher, up_lev.nb > low_lev.nb;
+// the energy of the first level is higher, up_lev.nb > low_lev.nb;
 void oh_hf_collisions::get_rate_neutrals(const energy_level& up_lev, const energy_level& low_lev, double& down_rate,
     double& up_rate, double temp_neutrals, const double* concentration, const int* indices) const
 {

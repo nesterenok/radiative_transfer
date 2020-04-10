@@ -1,4 +1,6 @@
+
 #include "maser_luminosity.h"
+using namespace std;
 
 // It is assumed that: the molecular data, radiation field, dust model are initialized in calc_scheme,
 void lim_luminosity_lvg(iteration_scheme_lvg* calc_scheme, transition_data_container* container, const cloud_data* cloud, const energy_diagram* diagram,
@@ -46,17 +48,15 @@ void lim_luminosity_lvg(iteration_scheme_lvg* calc_scheme, transition_data_conta
                 loss_rate = 0.;
                 for (i = 0; i < nb_mol_lev; i++) {
                     if (einst_coeff->arr[i][j] != 0 && i != l_low.nb && i != l_up.nb)
-                    {
-                        if (i > j)
-                            calc_scheme->intensity_calc(i, j, level_pop, intensity);
-                        else calc_scheme->intensity_calc(j, i, level_pop, intensity);
-
-                        // there is no population inversion between i and j levels, a_ji = a_ij *g_i/g_j
-                        if ((i < j) && (level_pop[shift + i] * einst_coeff->arr[i][j] > level_pop[shift + j] * einst_coeff->arr[j][i]))
+                    { // there is no population inversion between i and j levels, a_ji = a_ij *g_i/g_j
+                        if ((i < j) && (level_pop[shift + i] * einst_coeff->arr[i][j] > level_pop[shift + j] * einst_coeff->arr[j][i])) {
+                            calc_scheme->intensity_calc(j, i, level_pop, intensity);
                             loss_rate += einst_coeff->arr[j][i] * (1. + intensity);
-
-                        else if ((i > j) && (level_pop[shift + i] * einst_coeff->arr[i][j] < level_pop[shift + j] * einst_coeff->arr[j][i]))
+                        }
+                        else if ((i > j) && (level_pop[shift + i] * einst_coeff->arr[i][j] < level_pop[shift + j] * einst_coeff->arr[j][i])) { 
+                            calc_scheme->intensity_calc(i, j, level_pop, intensity);
                             loss_rate += einst_coeff->arr[j][i] * intensity;
+                        }
                     }
                 }
                 if (k == 0)
@@ -86,6 +86,7 @@ void lim_luminosity_lvg(iteration_scheme_lvg* calc_scheme, transition_data_conta
             else {
                 it->lum_arr[lay] = it->pump_eff_arr[lay] = 1.e-99;
             }
+             
             it->lum += it->lum_arr[lay] * cloud->lay_array[lay].dz;
             it->loss_rate_arr[lay] = (up_loss_rate[lay]* l_up.g + low_loss_rate[lay]* l_low.g)/((double) l_up.g + l_low.g);
         }      

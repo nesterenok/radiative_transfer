@@ -46,8 +46,6 @@ void iteration_scheme_lvg::init_molecule_data(const energy_diagram *e_d, const e
 	diagram = e_d;
 	einst_coeff = e_c; 
 	coll_trans = c_t;
-
-    // it is necessary to add the capability of reducing number of levels,
 	nb_mol_lev = diagram->nb_lev;
 
 	// initialization of transition rate array:
@@ -73,11 +71,13 @@ void iteration_scheme_lvg::set_dust_parameters(vector<double>& conc, vector<doub
 	dgrain_conc.clear();
 	dgrain_temp.clear();
 
-	for (int i = 0; i < (int)conc.size(); i++) {
-		dgrain_conc.push_back(conc[i]);
+    for (int i = 0; i < (int)conc.size(); i++) {
+        dgrain_conc.push_back(conc[i]);
+    }
+    for (int i = 0; i < (int)temp.size(); i++) {
 		dgrain_temp.push_back(temp[i]);
 	}
-	if (dust->nb_of_comp > (int)dgrain_conc.size() || dust->nb_of_comp > (int)dgrain_temp.size()) {
+	if (dust->nb_of_comp != (int)dgrain_conc.size() || dust->nb_of_comp != (int)dgrain_temp.size()) {
 		cout << "Error in " << SOURCE_NAME << ": there is an inconsistency in the interstellar dust data" << endl;
 		exit(1);
 	}
@@ -101,13 +101,14 @@ void iteration_scheme_lvg::calc_new_pop(double *old_pop, double *new_pop, double
 	
 	eq_error = 0.;
 	for (i = 0; i < nb_mol_lev; i++) {
-		if (eq_error < fabs(f_vector[i])) eq_error = fabs(f_vector[i]);
+		if (eq_error < fabs(f_vector[i])) 
+            eq_error = fabs(f_vector[i]);
 	}
 	delete [] f_vector;
 	delete [] b_vector;
 }
 
-void iteration_scheme_lvg::operator() (int dim, double *level_pop, double *f)
+void iteration_scheme_lvg::operator() (int dim, double *level_pop, double *df)
 {
 	int i, j;
 	double a, b, y, down_rate, up_rate, intensity;
@@ -148,12 +149,12 @@ void iteration_scheme_lvg::operator() (int dim, double *level_pop, double *f)
 		matrix[0][j] = 1.;
 	}
 	
-	memset(f, 0, nb_mol_lev*sizeof(double));
-	f[0] = 1.;
+	memset(df, 0, nb_mol_lev*sizeof(double));
+	df[0] = 1.;
 
 	for (i = 0; i < nb_mol_lev; i++) {
 		for (j = 0; j < nb_mol_lev; j++) {
-			f[i] -= matrix[i][j] *level_pop[j];
+			df[i] -= matrix[i][j] *level_pop[j];
 		}
 	}
 }
@@ -181,15 +182,13 @@ void iteration_scheme_lvg::intensity_calc(int up, int low, double *level_pop, do
 	intensity = line_emiss/line_opacity *ep1; // without dust emission
 };
 
-void iteration_scheme_lvg::calc_line_stat(const std::string& path, double* lev_pop)
+void iteration_scheme_lvg::calc_line_stat(const string& fname, double* lev_pop)
 {
     int i, j;
     double c, line_opacity, dust_opacity, energy, g, d;
     
     line_parameters lp;
     vector<line_parameters> lp_vector;
-   
-    string fname;
     ofstream output;
 
     for (i = 1; i < nb_mol_lev; i++) {
@@ -214,10 +213,7 @@ void iteration_scheme_lvg::calc_line_stat(const std::string& path, double* lev_p
             }
         }
     }
-
-    fname = path + diagram->mol.name;
-    fname += "_line_stat.txt";
-   
+ 
     output.open(fname.c_str(), std::ios_base::out);
     output << scientific;
     output.precision(4);
@@ -231,89 +227,77 @@ void iteration_scheme_lvg::calc_line_stat(const std::string& path, double* lev_p
 }
 
 
-hfs_lines::hfs_lines() : nb(0), upl0(0), lowl0(0), en0(0.)
+hfs_lines::hfs_lines() : nb(0)
 {;}
 
-void hfs_lines::clear()
-{
-    en0 = 0.;
-    nb = upl0 = lowl0 = 0;
+void hfs_lines::clear() {
+    nb = 0;
     upl.clear();
     lowl.clear();
     en.clear();
 }
 
-void hfs_lines::add_line(int u, int l, double e)
-{
+void hfs_lines::add_line(int u, int l, double e) {
     upl.push_back(u);
     lowl.push_back(l);
     en.push_back(e);
     nb++;
 }
 
+void hfs_lines::exchange_lines(int i, int j) {
+    swap(upl[i], upl[j]);
+    swap(lowl[i], lowl[j]);
+    swap(en[j], en[i]);
+}
+
 void hfs_lines::sort()
 {
-    int i, j, u, l;
+    if (nb <= 2)
+        return;
+
+    int i, j;
     double e;
-    if (nb > 1) {
-        for (i = 0; i < nb; i++) {
-            for (j = i + 1; j < nb; j++) {
-                if (en[j] < en[i]) {
-                    u = upl[j];
-                    l = lowl[j];
-                    e = en[j];
-
-                    upl[j] = upl[i];
-                    lowl[j] = lowl[i];
-                    en[j] = en[i];
-
-                    upl[i] = u;
-                    lowl[i] = l;
-                    en[i] = e;
-                }
-            }
-        }
-
-        // finding the lines most closest in frequency,
-        j = 0;
-        e = en[1] - en[0];
-        for (i = 1; i < nb-1; i++) {
-            if (en[i + 1] - en[i] < e) {
-                j = i;
-            }
-        }
-
-        en0 = en[j];
-        for (i = 0; i < nb; i++) {
-            en[i] -= en0;
-        }
-
-        for (i = 0; i < nb; i++) {
-            for (j = i + 1; j < nb; j++) {
-                if (fabs(en[j]) < fabs(en[i])) {
-                    u = upl[j];
-                    l = lowl[j];
-                    e = en[j];
-
-                    upl[j] = upl[i];
-                    lowl[j] = lowl[i];
-                    en[j] = en[i];
-
-                    upl[i] = u;
-                    lowl[i] = l;
-                    en[i] = e;
-                }
+    for (i = 0; i < nb; i++) {
+        for (j = i + 1; j < nb; j++) {
+            if (en[j] < en[i]) {
+                exchange_lines(i, j);
             }
         }
     }
-    else en0 = en[0];
-    
-    upl0 = upl[0];
-    lowl0 = lowl[0];
+    // finding the lines most closest in frequency,
+    j = 0;
+    e = en[1] - en[0];
+    for (i = 1; i < nb - 1; i++) {
+        if (en[i + 1] - en[i] < e) {
+            j = i;
+        }
+    }
+    e = en[j];
+
+    for (i = 0; i < nb; i++) {
+        for (j = i + 1; j < nb; j++) {
+            if (fabs(en[j] - e) < fabs(en[i] - e)) {
+                exchange_lines(i, j);
+            }
+        }
+    }
 }
 
+void hfs_lines::split(hfs_lines & hfs_l) 
+{
+    hfs_l.clear();
+    hfs_l.add_line(upl[0], lowl[0], en[0]);
+    hfs_l.add_line(upl[1], lowl[1], en[1]);
+
+    upl.erase(upl.begin(), upl.begin() + 2);
+    lowl.erase(lowl.begin(), lowl.begin() + 2);
+    en.erase(en.begin(), en.begin() + 2);
+    nb -= 2;
+}
+
+
 iteration_scheme_line_overlap::iteration_scheme_line_overlap(const std::string& data_path, int verbosity)
-    :iteration_scheme_lvg(data_path, verbosity), nb_overlap_lines(0) {
+    :iteration_scheme_lvg(data_path, verbosity) {
     line_overlap1 = new lvg_line_overlap_data(data_path, "lvg/line_overlap_func_p1.txt", verbosity);
     line_overlap2 = new lvg_line_overlap_data(data_path, "lvg/line_overlap_func_p2.txt", verbosity);
 }
@@ -323,57 +307,38 @@ iteration_scheme_line_overlap::~iteration_scheme_line_overlap() {
     delete line_overlap2;
 }
 
-// it is assumed that HF splitted levels do not intermixed in energy, it is the case for OH
 void iteration_scheme_line_overlap::init_molecule_data(const energy_diagram* e_d, const einstein_coeff* e_c, const collisional_transitions* c_t)
 {
     int i, j, m, l;
-    hfs_lines hfs_l;
+    hfs_lines hfs_l, hfs_l2;
+    
     iteration_scheme_lvg::init_molecule_data(e_d, e_c, c_t);
-
     line_list.clear();
+
     for (i = 2; i < nb_mol_lev; i += 2) {
         for (j = 0; j < i; j += 2)
         {
             hfs_l.clear();
             for (m = 0; m < 2; m++) {
-                for (l = 0; l < 2; l++)
-                {
+                for (l = 0; l < 2; l++) {
                     if (einst_coeff->arr[i + m][j + l] > 1.e-99) {
                         hfs_l.add_line(i + m, j + l, diagram->lev_array[i + m].energy - diagram->lev_array[j + l].energy);
                     }
                 }
+            }          
+            hfs_l.sort();
+
+            if (hfs_l.nb >= 3) { // nb may be 0,1,2,3,4
+                hfs_l.split(hfs_l2);
+                line_list.push_back(hfs_l2);
             }
-            if (hfs_l.nb > 0) {
-                hfs_l.sort();
+            if (hfs_l.nb > 0)
                 line_list.push_back(hfs_l);
-            }
         }
     }
 }
 
-void iteration_scheme_line_overlap::set_parameters(double temp_n, double temp_e, double el_conc, double h_conc, double ph2_conc, double oh2_conc, 
-    double he_conc, double mol_conc, double vel_turb)
-{
-    double en, dx;
-    iteration_scheme_lvg::set_parameters(temp_n, temp_e, el_conc, h_conc, ph2_conc, oh2_conc, he_conc, mol_conc, vel_turb);
-
-    // calculation the number of overlapping lines
-    nb_overlap_lines = 0;
-    for (int i = 0; i < (int)line_list.size(); i++) {
-        if (line_list[i].nb > 1) {
-            en = diagram->lev_array[line_list[i].upl[0]].energy - diagram->lev_array[line_list[i].lowl[0]].energy;
-            dx = (diagram->lev_array[line_list[i].upl[0]].energy - diagram->lev_array[line_list[i].lowl[0]].energy
-                - diagram->lev_array[line_list[i].upl[1]].energy + diagram->lev_array[line_list[i].lowl[1]].energy)
-                * SPEED_OF_LIGHT / (en * vel_width); 
-            
-            if (fabs(dx) < line_overlap1->get_dx_lim())
-                nb_overlap_lines++;
-        }
-    }
-}
-
-
-void iteration_scheme_line_overlap::operator()(int dim, double* level_pop, double* f)
+void iteration_scheme_line_overlap::operator()(int dim, double* level_pop, double* df)
 {
     int i, j, m, l, mm, ll;
     double a, b, y, down_rate, up_rate, intens1, intens2;
@@ -399,8 +364,8 @@ void iteration_scheme_line_overlap::operator()(int dim, double* level_pop, doubl
     for (i = 0; i < (int) line_list.size(); i++) {
         if (line_list[i].nb == 1) 
         {
-            m = line_list[i].upl0;
-            l = line_list[i].lowl0;
+            m = line_list[i].upl[0];
+            l = line_list[i].lowl[0];
 
             iteration_scheme_lvg::intensity_calc(m, l, level_pop, intens1);
             y = einst_coeff->arr[m][l] * (1. + intens1);
@@ -412,7 +377,7 @@ void iteration_scheme_line_overlap::operator()(int dim, double* level_pop, doubl
             matrix[m][l] += y;
             matrix[l][l] -= y;
         }
-        else {
+        else if (line_list[i].nb == 2) {
             m = line_list[i].upl[0];
             l = line_list[i].lowl[0];
 
@@ -437,34 +402,18 @@ void iteration_scheme_line_overlap::operator()(int dim, double* level_pop, doubl
             matrix[mm][ll] += y;
             matrix[ll][ll] -= y;
         }
-        
-        for (j = 2; j < line_list[i].nb; j++) 
-        {
-            m = line_list[i].upl[j];
-            l = line_list[i].lowl[j];
-
-            iteration_scheme_lvg::intensity_calc(m, l, level_pop, intens1);
-            y = einst_coeff->arr[m][l] * (1. + intens1);
-
-            matrix[m][m] -= y;
-            matrix[l][m] += y;
-
-            y = einst_coeff->arr[l][m] * intens1;
-            matrix[m][l] += y;
-            matrix[l][l] -= y;
-        }
     }
 
     for (j = 0; j < nb_mol_lev; j++) {
         matrix[0][j] = 1.;
     }
 
-    memset(f, 0, nb_mol_lev * sizeof(double));
-    f[0] = 1.;
+    memset(df, 0, nb_mol_lev * sizeof(double));
+    df[0] = 1.;
 
     for (i = 0; i < nb_mol_lev; i++) {
         for (j = 0; j < nb_mol_lev; j++) {
-            f[i] -= matrix[i][j] * level_pop[j];
+            df[i] -= matrix[i][j] * level_pop[j];
         }
     }
 }
@@ -512,17 +461,17 @@ void iteration_scheme_line_overlap::intensity_calc(int u1, int l1, int u2, int l
         dx = -dx;
         gratio = 1./gratio;
 
-        ep2 = line_overlap1->get_esc_func(gamma2, delta, gratio, dx);
-        ep1 = line_overlap2->get_esc_func(gamma2, delta, gratio, dx);
+        ep1 = line_overlap1->get_esc_func(gamma2, delta, gratio, dx);
+        ep2 = line_overlap2->get_esc_func(gamma2, delta, gratio, dx);
 
-        intens2 = line_emiss1 / line_opacity1 * ep1 + line_emiss2 / line_opacity2 * ep2;
+        intens2 = line_emiss1 / line_opacity1 * ep2 + line_emiss2 / line_opacity2 * ep1;
     }
     else {
         ep1 = loss_func_line_phot->get_esc_func(gamma1, delta);
         intens1 = line_emiss1 / line_opacity1 * ep1; // without dust emission
 
         ep2 = loss_func_line_phot->get_esc_func(gamma2, delta);
-        intens2 = line_emiss2 / line_opacity2 * ep2; // without dust emission
+        intens2 = line_emiss2 / line_opacity2 * ep2; 
     }
 }
 
@@ -533,19 +482,76 @@ void iteration_scheme_line_overlap::intensity_calc(int upl, int lowl, double* le
 
     intensity = 0.;
     for (i = 0; i < (int) line_list.size(); i++) {
-        for (k = 0; k < line_list[i].nb; k++) {
-            if (line_list[i].lowl[k] == lowl && line_list[i].upl[k] == upl) 
-            {
-                if (line_list[i].nb == 1 || k > 1) {
+        for (k = 0; k < line_list[i].nb; k++) 
+        {
+            if (line_list[i].lowl[k] == lowl && line_list[i].upl[k] == upl) {
+                if (line_list[i].nb == 1) {
                     iteration_scheme_lvg::intensity_calc(upl, lowl, level_pop, intensity);
                 }
-                else if (k == 0) {
-                    intensity_calc(upl, lowl, line_list[i].upl[1], line_list[i].lowl[1], level_pop, intensity, a);
-                }
                 else {
-                    intensity_calc(line_list[i].upl[1], line_list[i].lowl[1], upl, lowl, level_pop, a, intensity);
+                    if (k == 0) 
+                        intensity_calc(upl, lowl, line_list[i].upl[1], line_list[i].lowl[1], level_pop, intensity, a);
+                    else if (k == 1)
+                        intensity_calc(line_list[i].upl[0], line_list[i].lowl[0], upl, lowl, level_pop, a, intensity);
                 }
                 return;
+            }
+        }
+    }
+}
+
+void get_nb_overlap_lines(const energy_diagram* diagram, const einstein_coeff* einst_coeff, double vel_width, 
+    int& nb_double_overlap, int& nb_triple_overlap)
+{
+    const double dx_lim = 4.;
+    int i, j, m, l, nb_mol_lev;
+    double en, dx;   
+    hfs_lines hfs_l, hfs_l2;
+ 
+    nb_mol_lev = diagram->nb_lev;
+    nb_double_overlap = nb_triple_overlap = 0;
+
+    for (i = 2; i < nb_mol_lev; i += 2) {
+        for (j = 0; j < i; j += 2)
+        {
+            hfs_l.clear();
+            for (m = 0; m < 2; m++) {
+                for (l = 0; l < 2; l++) {
+                    if (einst_coeff->arr[i + m][j + l] > 1.e-99) {
+                        hfs_l.add_line(i + m, j + l, diagram->lev_array[i + m].energy - diagram->lev_array[j + l].energy);
+                    }
+                }
+            }
+            hfs_l.sort();
+
+            // it is assumed that line frequency >> frequency difference between lines,
+            en = diagram->lev_array[i].energy - diagram->lev_array[j].energy;
+            if (hfs_l.nb > 1) {
+                dx = (diagram->lev_array[hfs_l.upl[0]].energy - diagram->lev_array[hfs_l.lowl[0]].energy
+                    - diagram->lev_array[hfs_l.upl[1]].energy + diagram->lev_array[hfs_l.lowl[1]].energy)
+                    * SPEED_OF_LIGHT / (en * vel_width);
+
+                if (fabs(dx) < dx_lim)
+                    nb_double_overlap++;
+            }
+            if (hfs_l.nb > 2) {
+                dx = (diagram->lev_array[hfs_l.upl[1]].energy - diagram->lev_array[hfs_l.lowl[1]].energy
+                    - diagram->lev_array[hfs_l.upl[2]].energy + diagram->lev_array[hfs_l.lowl[2]].energy)
+                    * SPEED_OF_LIGHT / (en * vel_width);
+
+                if (fabs(dx) < dx_lim)
+                    nb_triple_overlap++;
+            }
+
+            if (hfs_l.nb == 4) {
+                hfs_l.split(hfs_l2);
+                
+                dx = (diagram->lev_array[hfs_l.upl[0]].energy - diagram->lev_array[hfs_l.lowl[0]].energy
+                    - diagram->lev_array[hfs_l.upl[1]].energy + diagram->lev_array[hfs_l.lowl[1]].energy)
+                    * SPEED_OF_LIGHT / (en * vel_width);
+
+                if (fabs(dx) < dx_lim)
+                    nb_double_overlap++;
             }
         }
     }

@@ -175,6 +175,7 @@
     <ClCompile Include="transition_list.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\input_data\mathematics\constants.h" />
     <ClInclude Include="..\..\..\input_data\mathematics\integration.h" />
     <ClInclude Include="..\..\..\input_data\mathematics\interpolation.h" />
     <ClInclude Include="..\..\..\input_data\mathematics\linear_algebra.h" />

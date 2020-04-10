@@ -2,6 +2,7 @@
 //
 // 05.09.2017. Check for errors;
 // 13.01.2020. Check for errors, line overlap was added;
+// 02.04.2020. Check for errors (class with spline was not checked)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +15,7 @@
 #include "special_functions.h"
 
 #define MAX_TEXT_LINE_WIDTH 240
+#define SOURCE_NAME "lvg_method_functions.cpp"
 using namespace std;
 
 lvg_method_data::lvg_method_data(const string &path, string name, int verbosity)
@@ -28,14 +30,13 @@ lvg_method_data::lvg_method_data(const string &path, string name, int verbosity)
 	input.open(file_name.c_str(), ios_base::in);
 
 	if (!input.is_open()) {
-		cout << "Error in lvg_method_functions.cpp: can't open " << file_name << endl;
+        cout << "Error in " << SOURCE_NAME << ": can't open " << file_name << endl;
 		exit(1);
 	}
 
 	input.getline(text_line, MAX_TEXT_LINE_WIDTH);
 	input.getline(text_line, MAX_TEXT_LINE_WIDTH);
 	input.getline(text_line, MAX_TEXT_LINE_WIDTH);
-
 	input >> nb_d >> nb_g;
 
 	// Delta is the 1st variable, gamma - the 2nd;
@@ -272,7 +273,7 @@ lvg_line_overlap_data::lvg_line_overlap_data(const std::string& path, std::strin
     input.open(file_name.c_str(), ios_base::in);
 
     if (!input.is_open()) {
-        cout << "Error in lvg_method_functions.cpp: can't open " << file_name << endl;
+        cout << "Error in " << SOURCE_NAME << ": can't open " << file_name << endl;
         exit(1);
     }
 
@@ -301,10 +302,6 @@ lvg_line_overlap_data::lvg_line_overlap_data(const std::string& path, std::strin
                 input >> j >> gratio_arr[i];
                 for (j = 0; j < nb_g; j++) {
                     input >> p_arr[l * nb_dx + k][i * nb_g + j];
-                    // Note!!! the current version of lvg data for second line are normalized incorrectly,
-                    if (name == "lvg/line_overlap_func_p2_test.txt") {
-                        p_arr[l * nb_dx + k][i * nb_g + j] /= gratio_arr[i];
-                    }
                 }
             }
         }
