@@ -247,7 +247,7 @@ void hfs_lines::add_line(int u, int l, double e) {
 void hfs_lines::exchange_lines(int i, int j) {
     swap(upl[i], upl[j]);
     swap(lowl[i], lowl[j]);
-    swap(en[j], en[i]);
+    swap(en[i], en[j]);
 }
 
 void hfs_lines::sort()
@@ -298,6 +298,7 @@ void hfs_lines::split(hfs_lines & hfs_l)
 
 iteration_scheme_line_overlap::iteration_scheme_line_overlap(const std::string& data_path, int verbosity)
     :iteration_scheme_lvg(data_path, verbosity) {
+    max_dx = 4; // > 0., may differ from the max value given in data files
     line_overlap1 = new lvg_line_overlap_data(data_path, "lvg/line_overlap_func_p1.txt", verbosity);
     line_overlap2 = new lvg_line_overlap_data(data_path, "lvg/line_overlap_func_p2.txt", verbosity);
 }
@@ -420,7 +421,7 @@ void iteration_scheme_line_overlap::operator()(int dim, double* level_pop, doubl
 
 void iteration_scheme_line_overlap::intensity_calc(int u1, int l1, int u2, int l2, double* level_pop, double& intens1, double& intens2) const
 {
-    double c, energy, line_emiss1, line_opacity1, line_emiss2, line_opacity2, gamma1, gamma2, gratio, dx, ep1, ep2,
+    double c, energy, line_emiss1, line_opacity1, line_emiss2, line_opacity2, gamma1, gamma2, gratio, dx, ep1, ep2, ep01, ep02,
         dust_opacity, delta;
 
     energy = diagram->lev_array[u1].energy - diagram->lev_array[l1].energy;
@@ -450,28 +451,46 @@ void iteration_scheme_line_overlap::intensity_calc(int u1, int l1, int u2, int l
     if (vel_grad < 0.)
         dx *= -1.;
 
-    if (fabs(dx) < line_overlap1->get_dx_lim())
-    {
+    ep1 = ep2 = ep01 = ep02 = 0.;
+    if (fabs(dx) < max_dx) {
         gratio = gamma2 / gamma1;
         ep1 = line_overlap1->get_esc_func(gamma1, delta, gratio, dx);
-        ep2 = line_overlap2->get_esc_func(gamma1, delta, gratio, dx);
 
-        intens1 = line_emiss1 / line_opacity1 * ep1 + line_emiss2 / line_opacity2 * ep2; // without dust emission
-
-        dx = -dx;
-        gratio = 1./gratio;
-
-        ep1 = line_overlap1->get_esc_func(gamma2, delta, gratio, dx);
-        ep2 = line_overlap2->get_esc_func(gamma2, delta, gratio, dx);
-
-        intens2 = line_emiss1 / line_opacity1 * ep2 + line_emiss2 / line_opacity2 * ep1;
+        gratio = gamma1 / gamma2;
+        ep2 = line_overlap1->get_esc_func(gamma2, delta, gratio, -dx);
     }
-    else {
-        ep1 = loss_func_line_phot->get_esc_func(gamma1, delta);
-        intens1 = line_emiss1 / line_opacity1 * ep1; // without dust emission
 
-        ep2 = loss_func_line_phot->get_esc_func(gamma2, delta);
-        intens2 = line_emiss2 / line_opacity2 * ep2; 
+    if (fabs(dx) > max_dx - 0.5) {
+        ep01 = loss_func_line_phot->get_esc_func(gamma1, delta);
+        ep02 = loss_func_line_phot->get_esc_func(gamma2, delta);   
+    }
+ 
+    if (fabs(dx) > max_dx) {
+         ep1 = ep01;
+         ep2 = ep02;
+    }
+    else if (fabs(dx) > max_dx - 0.5) {
+        c = 2.*(max_dx - fabs(dx));
+        ep1 = ep01 * (1. - c) + ep1 * c;
+        ep2 = ep02 * (1. - c) + ep2 * c;
+    }
+    intens1 = line_emiss1 / line_opacity1 * ep1;
+    intens2 = line_emiss2 / line_opacity2 * ep2;
+
+    if (fabs(dx) < max_dx) {
+        gratio = gamma2 / gamma1;
+        ep1 = line_overlap2->get_esc_func(gamma1, delta, gratio, dx);
+
+        gratio = gamma1 / gamma2;
+        ep2 = line_overlap2->get_esc_func(gamma2, delta, gratio, -dx);
+
+        if (fabs(dx) > max_dx - 0.5) {
+            c = 2.*(max_dx - fabs(dx));
+            ep1 *= c;
+            ep2 *= c;
+        }
+        intens1 += line_emiss2 / line_opacity2 * ep1;
+        intens2 += line_emiss1 / line_opacity1 * ep2;
     }
 }
 

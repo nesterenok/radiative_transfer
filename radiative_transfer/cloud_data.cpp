@@ -450,6 +450,7 @@ bool set_molecular_conc(std::string data_path, std::string mol_name, cloud_data*
         for (j = 0; j < (int)z_vect.size() - 1 && z_vect[j] < cloud->lay_array[i].zl; j++) { ; } // after cycle z_vect[j] >= lay_array[i].zl	
         for (k = j; k < (int)z_vect.size() - 1 && z_vect[k] < cloud->lay_array[i].zu; k++) { ; } // after cycle z_vect[k] >= lay_array[i].zu
 
+        cloud->lay_array[i].mol_conc = 0.;
         if (j > 0 && z_vect[j] > cloud->lay_array[i].zl) { // 
             cloud->lay_array[i].mol_conc += 0.5*(z_vect[j] - cloud->lay_array[i].zl) * 
                 (conc_vect[j] + conc_vect[j-1] + (conc_vect[j] - conc_vect[j-1]) *(cloud->lay_array[i].zl - z_vect[j-1]) /(z_vect[j] - z_vect[j-1]) );

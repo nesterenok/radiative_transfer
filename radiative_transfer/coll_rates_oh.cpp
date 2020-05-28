@@ -1,6 +1,6 @@
 
 // 27.04.2018
-// 01.04.2020 - check for errors in HF data;
+//
 //
 
 #include <stdio.h>
@@ -180,6 +180,61 @@ oh_hf_h2_coll_data::oh_hf_h2_coll_data(const std::string path, const energy_diag
     }
 }
 
+oh_hf_h2_ext_coll_data::oh_hf_h2_ext_coll_data(const std::string path, const energy_diagram*, bool coll_partner_is_ortho, int verbosity)
+{
+    char text_line[MAX_TEXT_LINE_WIDTH];
+    int i, j, li, lf, nb;
+    double a;
+    string fname;
+    ifstream input;
+
+    if (coll_partner_is_ortho)
+        fname = path + "coll_oh/coll_oh_hf_oh2_ext.txt";
+    else fname = path + "coll_oh/coll_oh_hf_ph2_ext.txt";
+
+    input.open(fname.c_str(), ios_base::in);
+    if (!input) {
+        cout << "Error in " << SOURCE_NAME << ": can't open file with collisional data " << fname << endl;
+        exit(1);
+    }
+    input.getline(text_line, MAX_TEXT_LINE_WIDTH);
+    input.getline(text_line, MAX_TEXT_LINE_WIDTH);
+    input.getline(text_line, MAX_TEXT_LINE_WIDTH);
+
+    input >> nb_lev >> jmax;
+    jmax++;      // one point is reserved for 0 K;
+    imax = nb_lev * (nb_lev - 1) / 2;
+
+    tgrid = new double[jmax];
+    coeff = alloc_2d_array<double>(imax, jmax);
+    memset(*coeff, 0, jmax * imax * sizeof(double));
+
+    coeff_deriv = alloc_2d_array<double>(imax, jmax);
+    memset(*coeff_deriv, 0, imax * jmax * sizeof(double));
+
+    tgrid[0] = 0.;
+    for (j = 1; j < jmax; j++) {
+        input >> tgrid[j];
+        for (i = 0; i < imax + nb_lev; i++) {
+            input >> li >> lf;
+
+            if (li > lf) {
+                nb = (li - 2) * (li - 1) / 2 + lf - 1; // the numeration of levels in the file starts from 1
+                input >> coeff[nb][j];
+            }
+            else 
+                input >> a;
+        }
+    }
+    input.close();
+    calc_coeff_deriv();
+
+    if (verbosity) {
+        cout << "  data have been read from file " << fname << endl
+            << "  temperature range " << (int)tgrid[1] << " - " << (int)tgrid[jmax - 1] << endl;
+    }
+}
+
 oh_hf_he_coll_data::oh_hf_he_coll_data(const std::string path, const energy_diagram*, int verbosity)
 {
     char text_line[MAX_TEXT_LINE_WIDTH];
@@ -237,7 +292,6 @@ oh_hf_he_coll_data::oh_hf_he_coll_data(const std::string path, const energy_diag
 // The class calculates collisional rates
 //
 
-// Without HF splitting
 oh_collisions::oh_collisions(const string &data_path, const energy_diagram* oh_di, int verbosity)
 {
 	bool is_h2_j0;
@@ -292,18 +346,23 @@ void oh_collisions::get_rate_neutrals(const energy_level &up_lev, const energy_l
 	else down_rate = 0.;
 }
 
-// for data taking into account HF splitting
+
 oh_hf_collisions::oh_hf_collisions(const string& data_path, const energy_diagram* oh_di, int verbosity)
 {
     bool coll_partner_is_ortho;
     if (verbosity)
-        cout << "OH collisional rate coefficients (including HF splitting) are being initializing..." << endl;
+        cout << "OH collisional rate coefficients are being initializing..." << endl;
 
     nb_lev = oh_di->nb_lev;
 
     coll_data.push_back(new oh_hf_he_coll_data(data_path, oh_di, verbosity));
+#if (!USE_EXTENDED_OH_HF_H2_DATA)
     coll_data.push_back(new oh_hf_h2_coll_data(data_path, oh_di, coll_partner_is_ortho = false, verbosity));
     coll_data.push_back(new oh_hf_h2_coll_data(data_path, oh_di, coll_partner_is_ortho = true, verbosity));
+#else
+    coll_data.push_back(new oh_hf_h2_ext_coll_data(data_path, oh_di, coll_partner_is_ortho = false, verbosity));
+    coll_data.push_back(new oh_hf_h2_ext_coll_data(data_path, oh_di, coll_partner_is_ortho = true, verbosity));
+#endif
     nb1 = (int)coll_data.size();
 
     // the data on electron collisions must be here;
@@ -329,7 +388,7 @@ void oh_hf_collisions::set_gas_param(double temp_neutrals, double temp_el, doubl
     concentration[2] = oh2_conc;
 }
 
-// the energy of the first level is higher, up_lev.nb > low_lev.nb;
+// The energy of the first level is higher, up_lev.nb > low_lev.nb;
 void oh_hf_collisions::get_rate_neutrals(const energy_level& up_lev, const energy_level& low_lev, double& down_rate,
     double& up_rate, double temp_neutrals, const double* concentration, const int* indices) const
 {

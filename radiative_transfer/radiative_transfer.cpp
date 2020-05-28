@@ -39,6 +39,9 @@ void calc_oh_masers(string input_data_path, string sim_data_path, string output_
 // OH radiative transfer calculations - no line overlap,
 void calc_oh_masers_test(string input_data_path, string sim_data_path, string output_path);
 
+// CH3OH radiative transfer calculations - with line overlap,
+void calc_ch3oh_masers(string input_data_path, string sim_data_path, string output_path, bool save_line_stat);
+
 // the calculation of the line overlap number as a function of doppler width,
 void calc_nb_line_overlaps(string input_data_path, string output_path);
 
@@ -62,18 +65,18 @@ int main()
 //    calc_nb_line_overlaps(input_data_path, output_path = "");
 
     //sim_data_path = "C:/Users/Александр/Documents/Данные и графики/paper C-type shocks - new data on H-H2 collisions/output_data_2e4_magnf-b2/shock_cr1-15_25_new/";
-    //sim_data_path = "C:/Users/Александр/Documents/Данные и графики/paper C-type shocks - new data on H-H2 collisions/output_data_2e5/shock_cr1-15_20/";
+    sim_data_path = "C:/Users/Александр/Documents/Данные и графики/paper C-type shocks - new data on H-H2 collisions/output_data_2e5/shock_cr1-15_20/";
     
     output_path = sim_data_path + "radiative_transfer/masers/";
-//    calc_oh_masers(input_data_path, sim_data_path, output_path, save_line_stat = true);
+//    calc_oh_masers(input_data_path, sim_data_path, output_path, save_line_stat = true); // with line statistics
     
     output_path = sim_data_path + "radiative_transfer/masers_oh_test/";
 //    calc_oh_masers_test(input_data_path, sim_data_path, output_path);
 
-    sim_data_path = "C:/Users/Александр/Documents/Данные и графики/paper C-type shocks - new data on H-H2 collisions/output_data_2e4_magnf-b2/shock_cr1-15_";
-    //sim_data_path = "C:/Users/Александр/Documents/Данные и графики/paper C-type shocks - new data on H-H2 collisions/output_data_2e5/shock_cr3-15_";
+    sim_data_path = "C:/Users/Александр/Documents/Данные и графики/paper C-type shocks - new data on H-H2 collisions/output_data_2e3_magnf-b2/shock_cr1-15_";
+//    sim_data_path = "C:/Users/Александр/Documents/Данные и графики/paper C-type shocks - new data on H-H2 collisions/output_data_2e4/shock_cr1-15_";
     
-    for (i = 5; i < 100; i += 5) {
+    for (i = 5; i <= 100; i += 5) {
         sstr.clear();
         sstr.str("");
 
@@ -84,10 +87,11 @@ int main()
         
         cout << sstr.str() << endl;
         output_path = sstr.str() + "radiative_transfer/masers/";
-        calc_oh_masers(input_data_path, sstr.str(), output_path, save_line_stat = false);
+//        output_path = sstr.str() + "radiative_transfer/masers_oh_coll_ext/";
+        calc_oh_masers(input_data_path, sstr.str(), output_path, save_line_stat = false); // no line statistics
 
-        output_path = sstr.str() + "radiative_transfer/masers_oh_test/";
-        calc_oh_masers_test(input_data_path, sstr.str(), output_path);
+//        output_path = sstr.str() + "radiative_transfer/masers_oh_test/";
+//        calc_oh_masers_test(input_data_path, sstr.str(), output_path);
     }
 }
 
@@ -205,7 +209,7 @@ void calc_oh_masers(string input_data_path, string sim_data_path, string output_
 
     // line statistic for cloud layers in the post shock gas:
     if (save_line_stat) {
-        for (i = nb_cloud_lay-1; i >= 0 && i > nb_cloud_lay/2; i -= 3) {
+        for (i = nb_cloud_lay-1; i > nb_cloud_lay/2; i -= 5) {
             clayer = cloud->lay_array[i];
             it_scheme_loverlap->set_vel_grad(clayer.velg_n);
             it_scheme_loverlap->set_dust_parameters(clayer.dust_grain_conc, clayer.dust_grain_temp);
@@ -214,8 +218,8 @@ void calc_oh_masers(string input_data_path, string sim_data_path, string output_
 
             sstr.clear();
             sstr.str("");
-            sstr << output_path + "line_stat_" << i << ".txt";
-            it_scheme_loverlap->calc_line_stat(sstr.str(), oh_popul);
+            sstr << output_path + oh_mol.name + "_line_stat_" << i << ".txt";
+            it_scheme_loverlap->calc_line_stat(sstr.str(), oh_popul+ i * nb_lev_oh);
         }
     }
 
@@ -261,11 +265,12 @@ void calc_oh_masers_test(string input_data_path, string sim_data_path, string ou
     if (!do_simdata_exist)
         return;
 
-    join_layers(cloud, NB_JOINED_LAYERS);
-    
-    nb_cloud_lay = cloud->nb_lay;
     cloud->save_data(output_path + "phys_param1.txt");
+
+    join_layers(cloud, NB_JOINED_LAYERS);
+    cloud->save_data(output_path + "phys_param2.txt");
     
+    nb_cloud_lay = cloud->nb_lay;  
     cloud->set_vel_turb(MICROTURBULENT_SPEED);
     cloud->set_dust_model(dust);
  
@@ -355,7 +360,7 @@ void calc_molecular_populations(cloud_data* cloud, iteration_scheme_lvg* it_sche
         it_scheme_lvg->set_parameters(clayer.temp_n, clayer.temp_el, clayer.el_conc, clayer.h_conc, clayer.ph2_conc, clayer.oh2_conc, clayer.he_conc,
             clayer.mol_conc, clayer.vel_turb);
 
-        cout << "layer nb " << lay_nb << endl;
+        cout << lay_nb << " ";
    
         is_solution_found = false;
         if (lay_nb > 0 && is_solution_found_prev) {
@@ -377,7 +382,7 @@ void calc_molecular_populations(cloud_data* cloud, iteration_scheme_lvg* it_sche
         is_solution_found_prev = is_solution_found;
     }
     
-    cout << "Can not find solution for layers: " << endl;;
+    cout << endl << "Can not find solution for layers: " << endl;;
     for (i = 0; i < (int)bad_layers.size(); i++) {
         cout << bad_layers[i] << " ";
     }
@@ -462,6 +467,10 @@ void save_mol_data(std::string fname, cloud_data* cloud, double* lev_pop, int nb
 			output << left << setw(13) << a* cloud->lay_array[i].mol_conc;
 		}
 	}
+}
+
+void calc_ch3oh_masers(string input_data_path, string sim_data_path, string output_path, bool save_line_stat)
+{
 }
 
 /*

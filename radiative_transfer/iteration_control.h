@@ -161,8 +161,8 @@ void iteration_control<iteration_step>::accel_step(double* accel_pop)
 			for (k = 0; k < dim; k++)
 			{
 				w = prev_level_pop.front().arr[k] + 1.e-99;
-				min_arr[i][j] += (residual_list.front().arr[k] - i_p->arr[k]) 
-					*(residual_list.front().arr[k] - j_p->arr[k])/(w*w);
+                min_arr[i][j] += (residual_list.front().arr[k] - i_p->arr[k])
+                    * (residual_list.front().arr[k] - j_p->arr[k])/(w * w);
 			}
 		}
 		for (k = 0; k < dim; k++)
