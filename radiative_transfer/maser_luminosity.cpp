@@ -1,4 +1,5 @@
 
+#include <cstring>
 #include "maser_luminosity.h"
 using namespace std;
 
@@ -75,12 +76,14 @@ void lim_luminosity_lvg(iteration_scheme_lvg* calc_scheme, transition_data_conta
                     up_loss_rate[lay] += coll_trans->get_rate_neutrals(l_up, diagram->lev_array[i], clayer.temp_n, coll_partn_conc, indices);
             }
 
+            // emission measure,
+            it->emiss_coeff_arr[lay] = (clayer.ph2_conc + clayer.oh2_conc) * clayer.mol_conc / clayer.velg_n;
+
             // if inversion < 0 than luminosity = 1.e-99;
             inversion = level_pop[shift + l_up.nb] / l_up.g - level_pop[shift + l_low.nb] / l_low.g;
             if (inversion > 0.) {
-                it->lum_arr[lay] = inversion / (1. / (up_loss_rate[lay] * l_up.g) + 1. / (low_loss_rate[lay] * l_low.g))
-                    * cloud->lay_array[lay].mol_conc;
-                
+                it->lum_arr[lay] = inversion / (1. / (up_loss_rate[lay] * l_up.g) + 1. / (low_loss_rate[lay] * l_low.g)) * clayer.mol_conc;
+               
                 it->pump_eff_arr[lay] = inversion / (level_pop[shift + l_up.nb] / l_up.g + level_pop[shift + l_low.nb] / l_low.g);
             }
             else {
@@ -89,6 +92,9 @@ void lim_luminosity_lvg(iteration_scheme_lvg* calc_scheme, transition_data_conta
              
             it->lum += it->lum_arr[lay] * cloud->lay_array[lay].dz;
             it->loss_rate_arr[lay] = (up_loss_rate[lay]* l_up.g + low_loss_rate[lay]* l_low.g)/((double) l_up.g + l_low.g);
+            
+            it->pump_rate_arr[lay] = 0.5 * (level_pop[shift + l_up.nb] * up_loss_rate[lay] / l_up.g + level_pop[shift + l_low.nb] * low_loss_rate[lay] / l_low.g)
+                    / (clayer.mol_conc * (clayer.ph2_conc + clayer.oh2_conc));
         }      
         it->lum /= cloud->get_height();
         it++;

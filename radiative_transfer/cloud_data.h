@@ -10,8 +10,13 @@ void join_layers(cloud_data *cloud, int nb);
 // Reading the data provided by the simulation of shock waves, the full data path must be given,
 // all old data is deleted, initializes all the data except mol_conc and vel_turb,
 bool set_physical_parameters(std::string data_path, cloud_data* cloud);
+
 // the specimen concentration is multiplied by factor f (in the case of spin isomers, e.g. o-H2 and p-H2)
 bool set_molecular_conc(std::string data_path, std::string mol_name, cloud_data* cloud, double f = 1.);
+
+// initialization of level populations from file,
+// if given nb_lev != nb of levels in the file - error, lev_popul has dimension nb_lay * nb_lev, 
+bool set_level_pop(std::string fname, cloud_data* cloud, int nb_lev, double *lev_popul);
 
 // The cloud layer class
 class cloud_layer

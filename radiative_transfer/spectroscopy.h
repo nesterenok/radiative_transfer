@@ -46,7 +46,7 @@ public:
 class energy_level
 {
 public:
-	// level nb, sym inv (+1,-1), statistical weight, vibrational quantum number, 
+	// level nb, sym inv (+1,-1), statistical weight (including j and spin), vibrational quantum number, 
 	int nb, syminv, g, v;
 	// angular momentum, projections of the angular momentum on molecule axes, molecule spin, energy (cm-1), hyperfine splitting quantum number
 	double j, k1, k2, spin, energy, hf;
@@ -96,6 +96,7 @@ public:
 
 // H2O molecule (HITRAN2012 database);
 // if nb of vibrationally excited states equals 4, maximal nb of levels is 411, equals 1 - 271 levels, equals 0 - 164 levels;
+// either ortho- or para-H2O molecules are considered - molecule spin must be defined,
 class h2o_diagram : public energy_diagram
 {
 public:
@@ -106,6 +107,7 @@ public:
 
 // CH3OH molecule (Mekhtiev et al., Journal of Molecular Spectroscopy 194, 171-178, 1999);
 // the maximum number of levels with vt <= 2 and angular momentum <= 22 is 1455;
+// either A- or E- CH3OH spin isomers is considered - molecule spin must be defined, 
 class ch3oh_diagram : public energy_diagram
 {
 public:
@@ -149,12 +151,21 @@ public:
     oh_hf_diagram(const std::string& path, molecule m, int& n_l, int verbosity = 1);
 };
 
-// NH3 can be ortho- and para-
+// NH3, either ortho- or para- molecules are considered - molecule spin must be defined,
 class nh3_diagram : public energy_diagram
 {
 public:
 	int get_nb(int syminv, int v, double j, double k) const;
 	nh3_diagram(const std::string &path, molecule m, int &n_l, int verbosity =1);
+};
+
+// H2CO, either ortho- or para- molecules are considered - molecule spin must be defined,
+// some para- levels have equal energy - must be taken into account in the code or fixed in file data, the level with higher k2 must have lower nb, 
+class h2co_diagram : public energy_diagram
+{
+public:
+	int get_nb(int v, double j, double k) const;  // k1 - k2 is considered as a third parameter, k1 = ka, k2 = kc, 
+	h2co_diagram(const std::string& path, molecule m, int& n_l, int verbosity = 1);
 };
 
 
@@ -228,6 +239,13 @@ class nh3_einstein_coeff : public einstein_coeff
 {
 public:
 	nh3_einstein_coeff(const std::string &path, const energy_diagram *, int verbosity =1);
+};
+
+// H2CO molecule radiative transitions;
+class h2co_einstein_coeff : public einstein_coeff
+{
+public:
+	h2co_einstein_coeff(const std::string& path, const energy_diagram*, int verbosity = 1);
 };
 
 

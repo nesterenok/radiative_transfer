@@ -489,24 +489,42 @@ void ch3oh_collisions::get_rate_neutrals(const energy_level &up_lev, const energ
 	// for ortho-H2 the rates of transitions including levels v_t = 0 and J <= 9 are available;  
 	if (up_lev.v == low_lev.v) {
 		if (up_lev.v == 0 && up_lev.j <= 9 && low_lev.j <= 9) // in this case the data for ortho-H2 are available;
-		{
-			down_rate = coll_data[1]->get_rate(up_lev.nb, low_lev.nb, indices[1], (temp_neutrals < max_temp[1]) ? temp_neutrals : max_temp[1]) *concentration[1] 
-				+ coll_data[2]->get_rate(up_lev.nb, low_lev.nb, indices[2], (temp_neutrals < max_temp[2]) ? temp_neutrals : max_temp[2]) *concentration[2];
+		{	
+			// max temperatures for ortho- and para-H2 data are equal
+			if (temp_neutrals < max_temp[1] || !USE_TEMPER_EXTRAP_CH3OH)
+				down_rate = coll_data[1]->get_rate(up_lev.nb, low_lev.nb, indices[1], (temp_neutrals < max_temp[1]) ? temp_neutrals : max_temp[1]) * concentration[1]
+					+ coll_data[2]->get_rate(up_lev.nb, low_lev.nb, indices[2], (temp_neutrals < max_temp[2]) ? temp_neutrals : max_temp[2]) * concentration[2];
+			else
+				down_rate = (coll_data[1]->get_rate(up_lev.nb, low_lev.nb, indices[1], max_temp[1]) * concentration[1]
+					+ coll_data[2]->get_rate(up_lev.nb, low_lev.nb, indices[2], max_temp[2]) * concentration[2])
+					* sqrt(temp_neutrals / max_temp[1]);
 		}
 		else
 		{ // in this case the data for ortho-H2 are assumed to be identical to para-H2;
-			down_rate = coll_data[1]->get_rate(up_lev.nb, low_lev.nb, indices[1], (temp_neutrals < max_temp[1]) ? temp_neutrals : max_temp[1]) 
-				*(concentration[1] + concentration[2]);
+			if (temp_neutrals < max_temp[1] || !USE_TEMPER_EXTRAP_CH3OH)
+				down_rate = coll_data[1]->get_rate(up_lev.nb, low_lev.nb, indices[1], (temp_neutrals < max_temp[1]) ? temp_neutrals : max_temp[1]) 
+				* (concentration[1] + concentration[2]);
+			else
+				down_rate = coll_data[1]->get_rate(up_lev.nb, low_lev.nb, indices[1], max_temp[1]) * (concentration[1] + concentration[2]) 
+					* sqrt(temp_neutrals / max_temp[1]);
 		}
 		// CH3OH-He
-		down_rate += coll_data[0]->get_rate(up_lev.nb, low_lev.nb, indices[0], (temp_neutrals < max_temp[0]) ? temp_neutrals : max_temp[0]) *concentration[0];
+		if (temp_neutrals < max_temp[0] || !USE_TEMPER_EXTRAP_CH3OH)
+			down_rate += coll_data[0]->get_rate(up_lev.nb, low_lev.nb, indices[0], (temp_neutrals < max_temp[0]) ? temp_neutrals : max_temp[0]) * concentration[0];
+		else
+			down_rate += coll_data[0]->get_rate(up_lev.nb, low_lev.nb, indices[0], max_temp[0]) * concentration[0]
+				* sqrt(temp_neutrals / max_temp[0]);
 	}
 	else {
 	// For torsionally inelastic transition induced by para-H2, Rabli, Flower (2011) suggested using the rate coefficients for He, 
 	// and three times these values for collisions with ortho-H2. 
 	// initial data sets are available for <= 400 K;
-		down_rate = coll_data[0]->get_rate(up_lev.nb, low_lev.nb, indices[0], (temp_neutrals < max_temp[0]) ? temp_neutrals : max_temp[0]) 
+		if (temp_neutrals < max_temp[0] || !USE_TEMPER_EXTRAP_CH3OH)
+			down_rate = coll_data[0]->get_rate(up_lev.nb, low_lev.nb, indices[0], (temp_neutrals < max_temp[0]) ? temp_neutrals : max_temp[0]) 
 				*(concentration[0] + concentration[1] + 3.*concentration[2]);
+		else
+			down_rate = coll_data[0]->get_rate(up_lev.nb, low_lev.nb, indices[0], max_temp[0])
+				* (concentration[0] + concentration[1] + 3. * concentration[2]) * sqrt(temp_neutrals / max_temp[0]);
 	}
 
 	if (down_rate > MIN_COLLISION_RATE)

@@ -82,6 +82,7 @@ public:
     hfs_lines();
 };
 
+// Only is suitable  for OH! The finding of overlapping lines uses explicitly the energy level structure;
 // the maximal number of overlapped lines is equal to 2,
 class iteration_scheme_line_overlap : public iteration_scheme_lvg
 {

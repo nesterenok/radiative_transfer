@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <math.h>
 #include "cloud_data.h"
 
 using namespace std;
@@ -464,6 +465,85 @@ bool set_molecular_conc(std::string data_path, std::string mol_name, cloud_data*
                 (conc_vect[k] + conc_vect[k-1] + (conc_vect[k] - conc_vect[k-1]) *(cloud->lay_array[i].zu - z_vect[k-1]) /(z_vect[k] - z_vect[k-1]) );
         }
         cloud->lay_array[i].mol_conc *= f / (cloud->lay_array[i].zu - cloud->lay_array[i].zl);
+    }
+    return true;
+}
+
+bool set_level_pop(string fname, cloud_data* cloud, int nb_lev, double* lev_popul)
+{
+    char text_line[MAX_TEXT_LINE_WIDTH];
+    int nb_lev_f, i, j, k, l;
+    double a, mol_conc;
+
+    vector<double> z_vect, pop_vect;
+    ifstream input;
+    stringstream ss;
+
+    input.open(fname.c_str());
+    if (!input) {
+        cout << "Cannot open file with data on specimen level densities:" << endl << "  " << fname << endl;
+        return false;
+    }
+    else {
+        input.getline(text_line, MAX_TEXT_LINE_WIDTH);
+        input.getline(text_line, MAX_TEXT_LINE_WIDTH);
+        
+        ss.clear();
+        ss.str(text_line);
+        ss >> a >> a >> nb_lev_f;
+        
+        if (nb_lev_f != nb_lev) {
+            cout << "Unequal level numbers in the code and in the input file: " << endl << "  " << fname << endl;
+            return false;
+        }
+
+        input.getline(text_line, MAX_TEXT_LINE_WIDTH);
+        while (!input.eof()) {
+            input.getline(text_line, MAX_TEXT_LINE_WIDTH);
+            if (text_line[0] == '\0')
+                break;
+
+            ss.clear();
+            ss.str(text_line);
+
+            ss >> a;
+            z_vect.push_back(a);
+
+            for (j = 0; j < 10; j++) {
+                ss >> a;
+            }
+            ss >> mol_conc;
+            for (j = 0; j < nb_lev_f; j++) {
+                ss >> a;  // reading population densities,
+                pop_vect.push_back(a/mol_conc);  // saving level populations
+            }
+        }
+    }
+    input.close();
+   
+    for (i = 0; i < cloud->nb_lay; i++) {
+        // calculation of the column density of molecules for each layer,
+        for (j = 0; j < (int)z_vect.size() - 1 && z_vect[j] < cloud->lay_array[i].zl; j++) { ; } // after cycle z_vect[j] >= lay_array[i].zl	
+        for (k = j; k < (int)z_vect.size() - 1 && z_vect[k] < cloud->lay_array[i].zu; k++) { ; } // after cycle z_vect[k] >= lay_array[i].zu
+
+        for (l = 0; l < nb_lev_f; l++) {
+            a = 0.;
+            if (j > 0 && z_vect[j] > cloud->lay_array[i].zl) { // 
+                a += 0.5 * (z_vect[j] - cloud->lay_array[i].zl) *
+                    (pop_vect[j * nb_lev_f + l] + pop_vect[(j - 1) * nb_lev_f + l] 
+                        + (pop_vect[j * nb_lev_f + l] - pop_vect[(j - 1) * nb_lev_f + l]) * (cloud->lay_array[i].zl - z_vect[j - 1]) / (z_vect[j] - z_vect[j - 1]));
+            }
+            for (; j < k; j++) {
+                a += 0.5 * (z_vect[j + 1] - z_vect[j]) * (pop_vect[j * nb_lev_f + l] + pop_vect[(j + 1) * nb_lev_f + l]);
+            }
+
+            if (k > 0 && z_vect[k] > cloud->lay_array[i].zu) {
+                a -= 0.5 * (z_vect[k] - cloud->lay_array[i].zu) * (pop_vect[k * nb_lev_f + l] + pop_vect[(k - 1) * nb_lev_f + l] 
+                        + (pop_vect[k * nb_lev_f + l] - pop_vect[(k - 1) * nb_lev_f + l]) * (cloud->lay_array[i].zu - z_vect[k - 1]) / (z_vect[k] - z_vect[k - 1]));
+            }
+            a /= (cloud->lay_array[i].zu - cloud->lay_array[i].zl);
+            lev_popul[i * nb_lev_f + l] = a;
+        }
     }
     return true;
 }

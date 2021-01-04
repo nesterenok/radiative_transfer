@@ -271,7 +271,7 @@ void nh3_collisions::set_gas_param(double temp_neutrals, double temp_el, double 
 	concentration[3] = h_conc;
 }
 
-// The energy of the first level is higher, up_lev.nb > low_lev.nb;
+// the energy of the first level is higher, up_lev.nb > low_lev.nb;
 void nh3_collisions::get_rate_neutrals(const energy_level &up_lev, const energy_level &low_lev, double &down_rate, 
 	double &up_rate, double temp_neutrals, const double *concentration, const int *indices) const
 {

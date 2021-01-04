@@ -8,7 +8,8 @@
 #include <fstream>
 #include <iomanip>
 #include <cfloat>
-#include <vector>
+#include <cstring>
+#include <stdlib.h>
 
 #include "utils.h"
 #include "linear_algebra.h"

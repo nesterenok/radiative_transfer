@@ -351,7 +351,7 @@ oh_hf_collisions::oh_hf_collisions(const string& data_path, const energy_diagram
 {
     bool coll_partner_is_ortho;
     if (verbosity)
-        cout << "OH collisional rate coefficients are being initializing..." << endl;
+        cout << "OH collisional rate coefficients are being initializing (including HF splitting)..." << endl;
 
     nb_lev = oh_di->nb_lev;
 

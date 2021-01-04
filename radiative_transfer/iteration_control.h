@@ -5,6 +5,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cfloat>
+#include <cstring>
 
 #include "constants.h"
 #include "utils.h"
@@ -211,11 +212,11 @@ bool iteration_control<iteration_step>::calculate_populations(double *pop_arr, i
     opt_level_pop = new dynamic_array(dim);
 	dynamic_array pop_dyn_arr(dim, pop_arr);
 	
-	cout.precision(3);
-	cout << scientific;
+	std::cout.precision(2);
+	std::cout << std::scientific;
 	if (verbosity) {
-		std::cout << "Level populations calculation:" << endl 
-            << left << setw(6) << "Nb" << setw(15) << "eq. error" << setw(15) << "pop. delta" << setw(15) << "rel. pop. delta" << endl;
+		std::cout << "Level populations calculation:" << std::endl 
+            << std::left << std::setw(6) << "Nb" << std::setw(11) << "eq. error " << std::setw(11) << "pop. delta " << std::setw(11) << "rel. pop. delta " << std::endl;
 	}
 	do {
 		next_step(pop_dyn_arr, is_accelerated);
@@ -223,8 +224,8 @@ bool iteration_control<iteration_step>::calculate_populations(double *pop_arr, i
 		
         if (verbosity) {
 			if (is_accelerated) 
-                cout << "acceleration step" << endl;
-            cout << left << setw(6) << iter_nb << setw(15) << eq_error << setw(15) << pop_error << setw(15) << rel_error << endl;
+                std::cout << "acceleration step" << std::endl;
+            std::cout << std::left << std::setw(6) << iter_nb << std::setw(11) << eq_error << std::setw(11) << pop_error << std::setw(11) << rel_error << std::endl;
 		}
 	}
 	while (iter_nb < max_iter_nb && !is_found);
@@ -236,6 +237,6 @@ bool iteration_control<iteration_step>::calculate_populations(double *pop_arr, i
 	delete opt_level_pop;
 	
 	if (verbosity) 
-		cout << "Time elapsed:	" << (int) (time(NULL) - c_begin) << endl;
+		std::cout << "Time elapsed:	" << (int) (time(NULL) - c_begin) << std::endl;
 	return is_found;
 }

@@ -3,7 +3,7 @@
 #include "coll_rates.h"
 
 
-// The ortho and para levels of NH3 and H2 do not interconvert in inelastic collisions;
+// The ortho and para levels of NH3 do not inter-convert in inelastic collisions;
 // data on NH3-He collisions, BASECOL data, 5 < T < 300 K;
 // Machin & Roueff, J. Phys. B 38, p. 1519, 2005; ortho-NH3 j <= 7 (22 levels), para-NH3 - j <= 4 (16 levels);
 class nh3_he_coll_data : public collision_data
@@ -35,7 +35,6 @@ class nh3_h_coll_data : public collision_data
 public:
 	nh3_h_coll_data(const std::string path, const energy_diagram *, int verbosity=1);
 };
-
 
 // Methods of this class calculate the total collisional rates for transitions between levels of NH3;
 class nh3_collisions : public collisional_transitions

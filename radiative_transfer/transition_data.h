@@ -11,12 +11,16 @@
 class transition_data
 {
 public:
-	int nb_cloud_lay;
+	// lay_nb_hg is the layer nb with the highest gain, if gain < 0 (no amplification) for the entire cloud, lay_nb_hg = 0; 
+	int nb_cloud_lay, lay_nb_hg;  
     // population inversion = n_up/g_up - n_l/g_l [cm-3], gain > 0 for amplification [cm-1], exc_temp < 0 [K]
-    // average value of the gain over entire cloud, optical depth summed over regions with positive gain, 
-	double inv, gain, lum, tau, tau_sat;  
+    // inv, gain, lum - average value of the inversion, gain, luminosity over entire cloud; 
+	// tau - the optical depth summed over regions with positive gain,
+	// tau_sat - the saturation optical depth at the given point,
+	double inv, gain, lum, tau, tau_sat;
+	// loss rate is an average for the upper and lower levels,
     // pump efficiency = inversion/(n_up/g_up + n_l/g_l) - is dimensionless, loss rate in [s-1], luminosity in [cm-3 s-1] 
-    double *inv_arr, *gain_arr, *lum_arr, *pump_eff_arr, *loss_rate_arr, *exc_temp_arr;
+    double *inv_arr, *gain_arr, *lum_arr, *emiss_coeff_arr, *pump_rate_arr, *pump_eff_arr, *loss_rate_arr, *exc_temp_arr;
 
 	const transition *trans;
 	
@@ -51,14 +55,15 @@ public:
 	void calc_inv(transition_data &, double *level_pop);
     
     // check water molecule name in this routine, the calculated gain takes into account the absorption by dust,
-    // gain and tau are calculated,
+    // gain and tau are calculated, the nb of the layer with the highest gain is saved,
 	void calc_gain(transition_data &, double *level_pop);
 
-	// the excitation temperature of the levels is calculated;
+	// the excitation temperature of the levels is calculated,
 	void calc_exc_temp(transition_data&, double* level_pop);
 	
     // calculates parameter tau_sat,
-    // the parameter loss_rate must be calculated (the function lim_luminosity_lvg must be called before),
+    // the parameter loss_rate and excitation temperature must be calculated (the functions lim_luminosity_lvg(), calc_gain(), calc_exc_temp() must be called before),
+	// beaming factor is dOmega/4pi, for isotropic is equal to 1.
     void calc_saturation_depth(double beaming_factor);
     
 	// the function deletes the old data on inverted transitions, must be called first,    

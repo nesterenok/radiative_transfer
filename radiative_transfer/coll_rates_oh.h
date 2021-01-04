@@ -1,7 +1,7 @@
 #pragma once
 #include "spectroscopy.h"
 #include "coll_rates.h"
-#define USE_EXTENDED_OH_HF_H2_DATA 0 // 0 - false, 1 true
+#define USE_EXTENDED_OH_HF_H2_DATA 1 // 0 - false (Offer et al., 1994), 1 - true (Cragg et al. 2002)
 
 // data on OH-H2 collisions; 20 rotational levels of ground vibrational state of OH are considered, 10 < T < 150 K;
 // Klos et al., MNRAS 471, 4249 (2017);

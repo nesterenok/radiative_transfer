@@ -91,7 +91,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Users\Александр\Documents\input_data\mathematics;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <OpenMPSupport>false</OpenMPSupport>
+      <OpenMPSupport>true</OpenMPSupport>
       <AdditionalOptions>/Zc:twoPhase- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -160,6 +160,8 @@
     <ClCompile Include="cloud_data.cpp" />
     <ClCompile Include="coll_rates.cpp" />
     <ClCompile Include="coll_rates_ch3oh.cpp" />
+    <ClCompile Include="coll_rates_h2co.cpp" />
+    <ClCompile Include="coll_rates_h2o.cpp" />
     <ClCompile Include="coll_rates_nh3.cpp" />
     <ClCompile Include="coll_rates_oh.cpp" />
     <ClCompile Include="dust_model.cpp" />
@@ -184,6 +186,8 @@
     <ClInclude Include="cloud_data.h" />
     <ClInclude Include="coll_rates.h" />
     <ClInclude Include="coll_rates_ch3oh.h" />
+    <ClInclude Include="coll_rates_h2co.h" />
+    <ClInclude Include="coll_rates_h2o.h" />
     <ClInclude Include="coll_rates_nh3.h" />
     <ClInclude Include="coll_rates_oh.h" />
     <ClInclude Include="dust_model.h" />

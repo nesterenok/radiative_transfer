@@ -18,6 +18,7 @@
 	25.04.2018. Angular momentum and its projections on molecular axes are float pointing values. OH molecule data were added.
 	10.05.2018. NH3 molecule data were added.
     06.04.2020. The energy_level class, operator == was changed.
+	09.06.2020. The statistical weight calculation is done unique in all classes (the j and spin are taken into account).
 */
 
 #ifndef _USE_MATH_DEFINES
@@ -39,7 +40,7 @@
 #include "utils.h"
 #include "spectroscopy.h"
 
-#define MAX_TEXT_LINE_WIDTH 240
+#define MAX_TEXT_LINE_WIDTH 240  // maximal size of the comment lines in the files,
 #define SOURCE_NAME "spectroscopy.cpp"
 using namespace std;
 
@@ -159,7 +160,7 @@ h2o_diagram::h2o_diagram(const string &data_path, molecule m, int &n_l, int nb_v
 	while (nb < n_l && i < i_max)
 	{
 		input >> v1 >> v2 >> v3;
-		input >> j >> ka >> kc >> energy;
+		input >> j >> ka >> kc >> energy;  //j, ka, kc are integers
 			
 		v = get_vibr_nb(v1, v2, v3);
 		if (abs(ka + kc + v3)%2 == rounding(mol.spin) && v <= nb_vibr)
@@ -171,9 +172,8 @@ h2o_diagram::h2o_diagram(const string &data_path, molecule m, int &n_l, int nb_v
 			level.energy = energy;
 			level.spin = mol.spin;
 
-			// The ortho- and para-H2O molecules are treated separately, 
-			// the term (rounding(2*mol.spin) + 1) is not taken into account;
-			level.g = 2*j + 1;
+			// either ortho- or para-H2O molecules is considered, 
+			level.g = rounding(2. * mol.spin + 1.) * (2 * j + 1);
 			level.nb = nb;
 
 			lev_array.push_back(level);
@@ -270,9 +270,8 @@ ch3oh_diagram::ch3oh_diagram(const string &data_path, molecule m, int &n_l, int 
 						level.spin = mol.spin;
 						level.energy = energy - energy_min;
 
-			// the CH3OH spin isomers are treated separately, the term (rounding(2.*mol.spin) + 1) is not taken into account,
-						level.g = 2*j + 1;
-
+			// either A- or E- CH3OH spin isomers is considered, 
+						level.g = rounding(2. * mol.spin + 1.) * (2 * j + 1);
 						lev_array.push_back(level);
 						i++;
 					}
@@ -392,7 +391,7 @@ co_diagram::co_diagram(const string &path, molecule m, int &n_l, int nb_vibr, in
 			level.energy = energy;
 			level.spin = 0;
 
-			level.g = 2*j + 1;
+			level.g = 2 * j + 1;
 			level.nb = nb;
 
 			lev_array.push_back(level);
@@ -419,7 +418,7 @@ oh_diagram::oh_diagram(const std::string &path, molecule m, int &n_l, int verb) 
 {
 	char text_line[MAX_TEXT_LINE_WIDTH];
 	int i_max, v, nb, parity; 
-	double j, omega, energy; // j is float value here
+	double j, omega, energy;
 
 	string fname;
 	ifstream input;
@@ -441,7 +440,7 @@ oh_diagram::oh_diagram(const std::string &path, molecule m, int &n_l, int verb) 
 	nb = 0;
 	while (nb < n_l && nb < i_max)
 	{
-		input >> v >> j >> omega >> parity >> energy;
+		input >> v >> j >> omega >> parity >> energy;  // j, omega are double
 
 		level.v = v;			
 		level.j = j; 
@@ -450,7 +449,7 @@ oh_diagram::oh_diagram(const std::string &path, molecule m, int &n_l, int verb) 
 		level.energy = energy;
         level.spin = mol.spin;
 
-		level.g = 2*(rounding(2.*j) + 1); // factor 2 is due to hyperfine splitting;
+		level.g = 2 * rounding(2.*j + 1.); // factor 2 is due to hyperfine splitting;
 		level.nb = nb;
 
 		lev_array.push_back(level);
@@ -475,8 +474,8 @@ int oh_diagram::get_nb(int parity, int v, double j, double omega) const
 oh_hf_diagram::oh_hf_diagram(const std::string& path, molecule m, int& n_l, int verb) : energy_diagram(m, verb)
 {
     char text_line[MAX_TEXT_LINE_WIDTH];
-    int i_max, v, nb, parity;
-    double j, omega, hf, energy; // j is float value here, hf is the total angular momentum including spin F = J+S
+    int i_max, v, nb, parity, hf;
+    double j, omega, energy; // j is double here, hf is the total angular momentum including spin F = J+S (is integer)
 
     string fname;
     ifstream input;
@@ -498,7 +497,7 @@ oh_hf_diagram::oh_hf_diagram(const std::string& path, molecule m, int& n_l, int 
     nb = 0;
     while (nb < n_l && nb < i_max)
     {
-        input >> v >> j >> omega >> parity >> hf >> energy;
+        input >> v >> j >> omega >> parity >> hf >> energy;  // j, omega are double, hf is integer,
 
         level.v = v;
         level.j = j;
@@ -508,7 +507,7 @@ oh_hf_diagram::oh_hf_diagram(const std::string& path, molecule m, int& n_l, int 
         level.energy = energy;
         level.spin = mol.spin;
 
-        level.g = rounding(2.*hf) + 1; // there is no any factor;
+        level.g = 2 * hf + 1; // there is no any factor;
         level.nb = nb;
 
         lev_array.push_back(level);
@@ -536,8 +535,8 @@ int oh_hf_diagram::get_nb(int parity, int v, double j, double omega, double hf) 
 nh3_diagram::nh3_diagram(const std::string &path, molecule m, int &n_l, int verb) : energy_diagram(m, verb)
 {
 	char text_line[MAX_TEXT_LINE_WIDTH];
-	int i, i_max, v, nb, syminv; 
-	double j, k, energy; 
+	int i, i_max, v, nb, j, k, syminv; 
+	double energy; 
 
 	string fname;
 	ifstream input;
@@ -559,10 +558,9 @@ nh3_diagram::nh3_diagram(const std::string &path, molecule m, int &n_l, int verb
 	nb = i = 0;
 	while (nb < n_l && i < i_max)
 	{
-		input >> v >> j >> k >> syminv >> energy;
-
-		if ((rounding(k)%3 == 0 && rounding(2*mol.spin) == 3) // ortho- or para-
-			|| (rounding(k)%3 != 0 && rounding(2*mol.spin) == 1))
+		input >> v >> j >> k >> syminv >> energy;  // v, j, k, syminv are integers
+		if ((k%3 == 0 && rounding(2.*mol.spin) == 3)  // ortho- or para-
+			|| (k%3 != 0 && rounding(2.*mol.spin) == 1))
 		{
 			level.v = v;			
 			level.j = j; 
@@ -572,13 +570,13 @@ nh3_diagram::nh3_diagram(const std::string &path, molecule m, int &n_l, int verb
 			level.spin = mol.spin;
 
 			// HITRAN for N^{14}H3: state independent weight 3, state dependent 4 (ortho-), 2 (para-)
-			level.g = 3*(rounding(2*mol.spin) + 1)*(rounding(2.*j) + 1); // ortho = 12*(2j+1), para = 6*(2j+1)
+			level.g = 3 * rounding(2.*mol.spin + 1.) * (2 * j + 1); // ortho = 12*(2j+1), para = 6*(2j+1)
 			level.nb = nb;
 
 			lev_array.push_back(level);
 			nb++;	
-			i++;
 		}
+		i++;
 	}
 	input.close();
 	nb_lev = n_l = (int) lev_array.size();
@@ -590,6 +588,66 @@ int nh3_diagram::get_nb(int syminv, int v, double j, double k) const
 	for (int i = 0; i < nb_lev; i++) {
 		if (lev_array[i].v == v && rounding(lev_array[i].j) == rounding(j) && rounding(lev_array[i].k1) == rounding(k)
 			&& lev_array[i].syminv == syminv)
+			return i;
+	}
+	return -1;
+}
+
+h2co_diagram::h2co_diagram(const std::string& path, molecule m, int& n_l, int verb) : energy_diagram(m, verb)
+{
+	char text_line[MAX_TEXT_LINE_WIDTH];
+	int i, i_max, v, j, ka, kc, nb;
+	double energy;
+
+	string fname;
+	ifstream input;
+	energy_level level;
+
+	fname = path + "spectroscopy/levels_h2co.txt";
+	input.open(fname.c_str(), ios_base::in);
+
+	if (!input) {
+		cout << "Error in " << SOURCE_NAME << ": can't open " << fname << endl;
+		exit(1);
+	}
+
+	input.getline(text_line, MAX_TEXT_LINE_WIDTH);
+	input.getline(text_line, MAX_TEXT_LINE_WIDTH);
+	input.getline(text_line, MAX_TEXT_LINE_WIDTH);
+	input >> i_max;
+
+	nb = i = 0;
+	while (nb < n_l && i < i_max) {
+		input >> v >> j >> ka >> kc >> energy;  // v, j, ka, kc are integers
+
+		if ((ka % 2 == 0 && rounding(mol.spin) == 0) // para- or ortho-
+			|| (ka % 2 != 0 && rounding(mol.spin) == 1))
+		{
+			level.v = v;
+			level.j = j;
+			level.k1 = ka;
+			level.k2 = kc;
+			level.energy = energy;
+			level.spin = mol.spin;
+
+			level.g = rounding(2. * mol.spin + 1.) * (2 * j + 1); 
+			level.nb = nb;
+
+			lev_array.push_back(level);
+			nb++;	
+		}
+		i++;
+	}
+	input.close();
+	nb_lev = n_l = (int)lev_array.size();
+	report(fname);
+}
+
+// the same as for H2O: k1 - k2 is considered as a third parameter,
+int h2co_diagram::get_nb(int v, double j, double k) const
+{
+	for (int i = 0; i < nb_lev; i++) {
+		if (lev_array[i].v == v && rounding(lev_array[i].j) == rounding(j) && rounding(lev_array[i].k1 - lev_array[i].k2) == rounding(k))
 			return i;
 	}
 	return -1;
@@ -1026,6 +1084,49 @@ nh3_einstein_coeff::nh3_einstein_coeff(const string &path, const energy_diagram 
 	}
 	input.close();
 	if (verbosity) 
+		cout << "  data are read from file " << file_name << endl;
+}
+
+h2co_einstein_coeff::h2co_einstein_coeff(const std::string& path, const energy_diagram *di, int verbosity) : einstein_coeff(di)
+{
+	char text_line[MAX_TEXT_LINE_WIDTH];
+	int	i, i_max, v, j, ka, kc, up, low;
+	double coeff, energy;
+
+	string file_name;
+	ifstream input;
+
+	if (verbosity)
+		cout << "H2CO molecule radiative coefficients are being initializing..." << endl;
+
+	file_name = path + "spectroscopy/radiative_h2co.txt";
+	input.open(file_name.c_str(), ios_base::in);
+
+	if (!input) {
+		cout << "Error in " << SOURCE_NAME << ": can't open " << file_name << endl;
+		exit(1);
+	}
+	input.getline(text_line, MAX_TEXT_LINE_WIDTH);
+	input.getline(text_line, MAX_TEXT_LINE_WIDTH);
+	input >> i_max;
+
+	for (i = 0; i < i_max; i++)
+	{
+		input >> v >> j >> ka >> kc;
+		up = di->get_nb(v, j, ka - kc);
+
+		input >> v >> j >> ka >> kc;
+		low = di->get_nb(v, j, ka - kc);
+
+		input >> coeff >> energy;
+		if (low != -1 && up != -1)
+		{
+			arr[up][low] = coeff;
+			arr[low][up] = di->lev_array[up].g * coeff / ((double)di->lev_array[low].g);
+		}
+	}
+	input.close();
+	if (verbosity)
 		cout << "  data are read from file " << file_name << endl;
 }
 
