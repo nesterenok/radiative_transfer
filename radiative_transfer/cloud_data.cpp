@@ -523,8 +523,8 @@ bool set_level_pop(string fname, cloud_data* cloud, int nb_lev, double* lev_popu
    
     for (i = 0; i < cloud->nb_lay; i++) {
         // calculation of the column density of molecules for each layer,
-        for (j = 0; j < (int)z_vect.size() - 1 && z_vect[j] < cloud->lay_array[i].zl; j++) { ; } // after cycle z_vect[j] >= lay_array[i].zl	
-        for (k = j; k < (int)z_vect.size() - 1 && z_vect[k] < cloud->lay_array[i].zu; k++) { ; } // after cycle z_vect[k] >= lay_array[i].zu
+        for (j = 0; j < (int)z_vect.size() - 1 && z_vect[j] < cloud->lay_array[i].zl; j++) { ; }  // after cycle z_vect[j] >= lay_array[i].zl	
+        for (k = j; k < (int)z_vect.size() - 1 && z_vect[k] < cloud->lay_array[i].zu; k++) { ; }  // after cycle z_vect[k] >= lay_array[i].zu
 
         for (l = 0; l < nb_lev_f; l++) {
             a = 0.;

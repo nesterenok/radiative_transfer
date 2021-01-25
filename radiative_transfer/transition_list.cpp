@@ -445,7 +445,7 @@ void nh3_trans_list(const energy_diagram* diagram, std::list<transition>& trans_
 
     if (rounding(2. * diagram->mol.spin) == 1) // para
     {
-        up = diagram->get_nb(1, 0, 2, 2);	//  23.723 GHz = 0.7913 cm-1
+        up = diagram->get_nb(1, 0, 2, 2);	//  23.722 GHz = 0.7913 cm-1
         low = diagram->get_nb(0, 0, 2, 2);
 
         if (up != -1 && low != -1) {
@@ -505,7 +505,7 @@ void h2co_trans_list(const energy_diagram *diagram, std::list<transition>& trans
     transition* trans;
 
     // v, j, ka - kc
-    up = diagram->get_nb(0, 1, 1);	//  4.83 GHz
+    up = diagram->get_nb(0, 1, 1);	//  4.829 GHz
     low = diagram->get_nb(0, 1, 0);
 
     if (up != -1 && low != -1) {
@@ -514,7 +514,7 @@ void h2co_trans_list(const energy_diagram *diagram, std::list<transition>& trans
         delete trans;
     }
 
-    up = diagram->get_nb(0, 2, 0);	//  14.5 GHz
+    up = diagram->get_nb(0, 2, 0);	//  14.488 GHz
     low = diagram->get_nb(0, 2, -1);
 
     if (up != -1 && low != -1) {
@@ -540,16 +540,6 @@ void para_h2o_trans_list(const energy_diagram *diagram, std::list<transition>& t
 
     up = diagram->get_nb(0, 5, -4); // 325.2 GHz
     low = diagram->get_nb(0, 4, 0);
-
-    if (up != -1 && low != -1) {
-        trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
-        trans_list.push_back(*trans);
-        delete trans;
-    }
-
-    // Vibrationally excited
-    up = diagram->get_nb(1, 4, 4);	// 96.26 GHz
-    low = diagram->get_nb(1, 5, 0);
 
     if (up != -1 && low != -1) {
         trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
@@ -636,12 +626,23 @@ void ortho_h2o_trans_list(const energy_diagram* diagram, std::list<transition>& 
     }
 }
 
+// Vibrationally excited
 void ortho_h2o_vibr_trans_list(const energy_diagram *diagram, std::list<transition> & trans_list)
 {
     int up, low;
     transition* trans;
+    
+    // para-H2O
+    up = diagram->get_nb(1, 4, 4);	// 96.26 GHz
+    low = diagram->get_nb(1, 5, 0);
 
-    // Vibrationally excited
+    if (up != -1 && low != -1) {
+        trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+        trans_list.push_back(*trans);
+        delete trans;
+    }
+
+    // ortho-H2O
     up = diagram->get_nb(1, 4, -1);	// 12.01 GHz
     low = diagram->get_nb(1, 3, 3);
 

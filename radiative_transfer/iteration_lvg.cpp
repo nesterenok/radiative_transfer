@@ -216,15 +216,19 @@ void iteration_scheme_lvg::calc_line_stat(const string& fname, double* lev_pop)
     }
  
     output.open(fname.c_str(), std::ios_base::out);
-    output << scientific;
-    output.precision(4);
+    if (!output.is_open())
+        cout << "Error in " << SOURCE_NAME << ": can't open file to write line statistics data;" << endl;
+    else {
+        output << scientific;
+        output.precision(4);
 
-    output << "! parameters: upper, lower levels, energy(cm-1), abs(d), abs(g)" << endl;
-    for (i = 0; i < (int) lp_vector.size(); i++) {
-        output << left << setw(5) << lp_vector[i].nbu << setw(5) << lp_vector[i].nbl << setw(15) << lp_vector[i].en
-            << setw(15) << lp_vector[i].d << setw(15) << lp_vector[i].g << endl;
+        output << "! parameters: upper, lower levels, energy(cm-1), abs(d), abs(g)" << endl;
+        for (i = 0; i < (int)lp_vector.size(); i++) {
+            output << left << setw(5) << lp_vector[i].nbu << setw(5) << lp_vector[i].nbl << setw(15) << lp_vector[i].en
+                << setw(15) << lp_vector[i].d << setw(15) << lp_vector[i].g << endl;
+        }
+        output.close();
     }
-    output.close();
 }
 
 
