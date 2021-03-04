@@ -18,11 +18,13 @@ public:
 	// tau_max - the optical depth summed over regions with positive gain along the outflow at line centre (taking into account the frequency shift)
 	// tau_eff - the effective optical depth (ignoring frequency shift),
 	// tau_sat - the saturation optical depth at the given point,
-	double inv, gain, lum, tau_max, tau_eff, tau_sat;
+	// temp_sat - brightness temperature of the maser at the start of the saturation,
+	double inv, gain, lum, tau_max, tau_eff, tau_sat, temp_sat, delta_apect_ratio;
 	// loss rate is an average for the upper and lower levels,
     // pump efficiency = inversion/(n_up/g_up + n_l/g_l) - is dimensionless, loss rate in [s-1], luminosity in [cm-3 s-1] 
-    double *inv_arr, *gain_arr, *lum_arr, *emiss_coeff_arr, *pump_rate_arr, *pump_eff_arr, *loss_rate_arr, *exc_temp_arr, 
-		*tau_vs_aspect_ratio, *tau_vs_frequency;
+	double* inv_arr, * gain_arr, * lum_arr, * emiss_coeff_arr, * pump_rate_arr, * pump_eff_arr, * loss_rate_arr, * exc_temp_arr;
+	// aspect ration lies in the range [1, max_aspect_ratio], frequency range is determined by the shock speed,
+	double *tau_vs_aspect_ratio, *tau_vs_frequency;
 
 	const transition *trans;
 	
@@ -43,7 +45,7 @@ class transition_data_container
 protected:
 	int		t_nb;
     double  min_optical_depth;  // it is necessary for the function find(), by default is very low
-	double  velocity_shift;
+	double  velocity_shift;     // the parameter is for computing spectra (tau dependence on velocity)
 	double	*tau_arr, *sm_arr;
 
 	const energy_diagram	*diagram;
@@ -57,13 +59,15 @@ public:
     void set_min_optical_depth(double depth) { min_optical_depth = depth; }
 	void calc_inv(transition_data &, double *level_pop);
     
+	// inversion must be calculated first
     // check water molecule name in this routine, the calculated gain takes into account the absorption by dust,
-    // gain and tau are calculated, the nb of the layer with the highest gain is saved,
-	void calc_gain(transition_data &, double *level_pop);
+    // gain and tau_eff are calculated, the nb of the layer with the highest gain is saved,
+	void calc_gain(transition_data &);
 
+	// inversion must be calculated first
 	// calculation of optical depth (taking into account the frequency shift) as a function of aspect ratio a = 1/cos theta,
 	// theta - angle between line of sight and z,
-	void calc_line_profile(transition_data&, double* level_pop);
+	void calc_line_profile(transition_data&);
 
 	// the excitation temperature of the levels is calculated,
 	void calc_exc_temp(transition_data&, double* level_pop);

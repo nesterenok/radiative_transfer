@@ -5,7 +5,7 @@
 
 // Nb of torsionally excited states, for which the collisional rate coefficients were calculated in Rabli, Flower (2010, 2011)
 #define NB_VIBR_EXCIT_CH3OH_RABLI 2
-#define USE_TEMPER_EXTRAP_CH3OH 1  // 0 - false, 1 - true;
+#define USE_TEMPER_EXTRAP_CH3OH 0  // 0 - false, 1 - true;
 
 // The class includes data on rotationally and torsionally inelastic scattering of CH3OH-He system;
 // Rabli, Flower, MNRAS 403, p.2033, 2010; Rabli, Flower, MNRAS 411, p.2093, 2011;

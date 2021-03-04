@@ -31,6 +31,15 @@ void ch3oh_classI_trans_list(const energy_diagram* diagram, list<transition>& tr
             delete trans;
         }
 
+        up = diagram->get_nb(0, 11, -1);	//  76.247 GHz
+        low = diagram->get_nb(0, 10, -2);
+
+        if (up != -1 && low != -1) {
+            trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+            trans_list.push_back(*trans);
+            delete trans;
+        }
+
         up = diagram->get_nb(0, 8, 0);	//  95.169 GHz, detected
         low = diagram->get_nb(0, 7, 1);
 
@@ -82,7 +91,7 @@ void ch3oh_classI_trans_list(const energy_diagram* diagram, list<transition>& tr
 
         // there is a set of maser transitions J_2->J_1, J = 2,3,4,5,6,7,8,9 (Voronkov et al., MNRAS 373, 411-424, 2006),
         // frequencies from Mekhtiev et al., J. Mol. Spectr. 194, 171-178 (1999),
-        up = diagram->get_nb(0, 2, 2);	//  24.934398 GHz
+        up = diagram->get_nb(0, 2, 2);	//  24.934398 GHz, detected
         low = diagram->get_nb(0, 2, 1);
 
         if (up != -1 && low != -1) {
@@ -91,7 +100,7 @@ void ch3oh_classI_trans_list(const energy_diagram* diagram, list<transition>& tr
             delete trans;
         }
 
-        up = diagram->get_nb(0, 3, 2);	//  24.928715 GHz
+        up = diagram->get_nb(0, 3, 2);	//  24.928715 GHz, detected
         low = diagram->get_nb(0, 3, 1);
 
         if (up != -1 && low != -1) {
@@ -100,7 +109,7 @@ void ch3oh_classI_trans_list(const energy_diagram* diagram, list<transition>& tr
             delete trans;
         }
 
-        up = diagram->get_nb(0, 4, 2);	//  24.93348 GHz
+        up = diagram->get_nb(0, 4, 2);	//  24.93348 GHz, detected
         low = diagram->get_nb(0, 4, 1);
 
         if (up != -1 && low != -1) {
@@ -109,7 +118,7 @@ void ch3oh_classI_trans_list(const energy_diagram* diagram, list<transition>& tr
             delete trans;
         }
 
-        up = diagram->get_nb(0, 5, 2);	//  24.959084 GHz
+        up = diagram->get_nb(0, 5, 2);	//  24.959084 GHz, detected
         low = diagram->get_nb(0, 5, 1);
 
         if (up != -1 && low != -1) {
@@ -118,7 +127,7 @@ void ch3oh_classI_trans_list(const energy_diagram* diagram, list<transition>& tr
             delete trans;
         }
 
-        up = diagram->get_nb(0, 6, 2);	//  25.018122 GHz
+        up = diagram->get_nb(0, 6, 2);	//  25.018122 GHz, detected
         low = diagram->get_nb(0, 6, 1);
 
         if (up != -1 && low != -1) {
@@ -127,7 +136,7 @@ void ch3oh_classI_trans_list(const energy_diagram* diagram, list<transition>& tr
             delete trans;
         }
 
-        up = diagram->get_nb(0, 7, 2);	//  25.124864 GHz
+        up = diagram->get_nb(0, 7, 2);	//  25.124864 GHz, detected
         low = diagram->get_nb(0, 7, 1);
 
         if (up != -1 && low != -1) {
@@ -136,7 +145,7 @@ void ch3oh_classI_trans_list(const energy_diagram* diagram, list<transition>& tr
             delete trans;
         }
 
-        up = diagram->get_nb(0, 8, 2);	//  25.294401 GHz
+        up = diagram->get_nb(0, 8, 2);	//  25.294401 GHz, detected
         low = diagram->get_nb(0, 8, 1);
 
         if (up != -1 && low != -1) {
@@ -145,7 +154,7 @@ void ch3oh_classI_trans_list(const energy_diagram* diagram, list<transition>& tr
             delete trans;
         }
 
-        up = diagram->get_nb(0, 9, 2);	//  25.541375 GHz
+        up = diagram->get_nb(0, 9, 2);	//  25.541375 GHz, detected
         low = diagram->get_nb(0, 9, 1);
 
         if (up != -1 && low != -1) {
@@ -156,6 +165,15 @@ void ch3oh_classI_trans_list(const energy_diagram* diagram, list<transition>& tr
 
         up = diagram->get_nb(0, 10, 2);	//  25.878239 GHz
         low = diagram->get_nb(0, 10, 1);
+
+        if (up != -1 && low != -1) {
+            trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+            trans_list.push_back(*trans);
+            delete trans;
+        }
+
+        up = diagram->get_nb(0, 12, 2);	//  26.847205  GHz
+        low = diagram->get_nb(0, 12, 1);
 
         if (up != -1 && low != -1) {
             trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
@@ -173,7 +191,7 @@ void ch3oh_classI_trans_list(const energy_diagram* diagram, list<transition>& tr
             delete trans;
         }
 
-        up = diagram->get_nb(0, 4, -1);	//  36.169 GHz, detected
+        up = diagram->get_nb(0, 4, -1);	 //  36.169 GHz, detected
         low = diagram->get_nb(0, 3, 0);
 
         if (up != -1 && low != -1) {
@@ -182,7 +200,16 @@ void ch3oh_classI_trans_list(const energy_diagram* diagram, list<transition>& tr
             delete trans;
         }
 
-        up = diagram->get_nb(0, 5, 0);	//  76.509 GHz
+        up = diagram->get_nb(0, 10, -1);  //  57.292 GHz
+        low = diagram->get_nb(0, 9, -2);
+
+        if (up != -1 && low != -1) {
+            trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+            trans_list.push_back(*trans);
+            delete trans;
+        }
+
+        up = diagram->get_nb(0, 5, 0);	 //  76.509 GHz
         low = diagram->get_nb(0, 4, 1);
 
         if (up != -1 && low != -1) {
@@ -627,7 +654,7 @@ void ortho_h2o_trans_list(const energy_diagram* diagram, std::list<transition>& 
 }
 
 // Vibrationally excited
-void ortho_h2o_vibr_trans_list(const energy_diagram *diagram, std::list<transition> & trans_list)
+void h2o_vibr_trans_list(const energy_diagram *diagram, std::list<transition> & trans_list)
 {
     int up, low;
     transition* trans;

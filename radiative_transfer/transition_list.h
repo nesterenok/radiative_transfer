@@ -11,4 +11,4 @@ void h2co_trans_list(const energy_diagram*, std::list<transition>& trans_list);
 
 void para_h2o_trans_list(const energy_diagram*, std::list<transition>& trans_list);
 void ortho_h2o_trans_list(const energy_diagram*, std::list<transition>& trans_list);
-void ortho_h2o_vibr_trans_list(const energy_diagram*, std::list<transition>& trans_list);
+void h2o_vibr_trans_list(const energy_diagram*, std::list<transition>& trans_list);

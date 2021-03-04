@@ -14,7 +14,8 @@
 using namespace std;
 
 transition_data::transition_data(int nb_lay, const energy_level &low, const energy_level &up)
-: inv(0.), gain(0.), lum(0.), tau_max(0.), tau_eff(0.), tau_sat(0.), lay_nb_hg(0), nb_aspect_ratio(10), nb_freq(300)
+: inv(0.), gain(0.), lum(0.), tau_max(0.), tau_eff(0.), tau_sat(0.), temp_sat(0.), lay_nb_hg(0), 
+delta_apect_ratio(0.25), nb_aspect_ratio(37), nb_freq(300)
 {
 	nb_cloud_lay = nb_lay;
 	trans = new transition(low, up);
@@ -54,9 +55,11 @@ transition_data::transition_data(const transition_data &obj)
 {
 	trans = new transition(obj.trans->low_lev, obj.trans->up_lev);
 	
-	nb_freq = obj.nb_freq;
+	delta_apect_ratio = obj.delta_apect_ratio;
 	nb_aspect_ratio = obj.nb_aspect_ratio;
+	nb_freq = obj.nb_freq;
 	nb_cloud_lay = obj.nb_cloud_lay;
+	lay_nb_hg = obj.lay_nb_hg;
 
 	inv = obj.inv;
 	gain = obj.gain;
@@ -64,7 +67,7 @@ transition_data::transition_data(const transition_data &obj)
 	tau_max = obj.tau_max;
 	tau_eff = obj.tau_eff;
 	tau_sat = obj.tau_sat;
-	lay_nb_hg = obj.lay_nb_hg;
+	temp_sat = obj.temp_sat;
 
 	inv_arr = new double [nb_cloud_lay];
 	memcpy(inv_arr, obj.inv_arr, nb_cloud_lay *sizeof(double));
@@ -102,17 +105,19 @@ transition_data& transition_data::operator = (const transition_data &obj)
 	delete trans;
 	trans = new transition(obj.trans->low_lev, obj.trans->up_lev);
 	
-	nb_freq = obj.nb_freq;
+	delta_apect_ratio = obj.delta_apect_ratio;
 	nb_aspect_ratio = obj.nb_aspect_ratio;
+	nb_freq = obj.nb_freq;
 	nb_cloud_lay = obj.nb_cloud_lay;
-	
+	lay_nb_hg = obj.lay_nb_hg;
+
 	inv = obj.inv;
 	gain = obj.gain;
 	lum = obj.lum;
 	tau_max = obj.tau_max;
 	tau_eff = obj.tau_eff;
 	tau_sat = obj.tau_sat;
-	lay_nb_hg = obj.lay_nb_hg;
+	temp_sat = obj.temp_sat;
 	
 	delete [] inv_arr;
 	inv_arr = new double [nb_cloud_lay];
@@ -249,7 +254,7 @@ void transition_data_container::calc_exc_temp(transition_data& trans_data, doubl
 }
 
 // The population inversion must be calculated before the function call;
-void transition_data_container::calc_gain(transition_data& trans_data, double* level_pop)
+void transition_data_container::calc_gain(transition_data& trans_data)
 {
 	bool h2o_22GHz_case = false;
 	int lay;
@@ -303,12 +308,16 @@ void transition_data_container::calc_gain(transition_data& trans_data, double* l
 		trans_data.lay_nb_hg = 0;
 }
 
-void transition_data_container::calc_line_profile(transition_data & trans_data, double* level_pop)
+void transition_data_container::calc_line_profile(transition_data & trans_data)
 {
-	int i, n, lay;
-	double x, vmin, vmax, dv, energy, energy_th,  vel,  profile, aspect_ratio;
+	int i, n, lay, nb_aspect_ratio, nb_freq;
+	double da, x, vmin, vmax, dv, energy, energy_th,  vel,  profile, aspect_ratio;
 	double* line_opacity, * vel_width, * dust_opacity;
 	double** optical_depth;
+
+	nb_freq = trans_data.nb_freq;
+	nb_aspect_ratio = trans_data.nb_aspect_ratio;
+	da = trans_data.delta_apect_ratio;
 
 	energy = trans_data.trans->energy;
 	energy_th = energy * energy * energy;
@@ -316,7 +325,7 @@ void transition_data_container::calc_line_profile(transition_data & trans_data, 
 	// velocity range for spectra construction
 	vmax = cloud->lay_array[0].vel_n + velocity_shift; // in cm/s
 	vmin = cloud->lay_array[nb_cloud_lay - 1].vel_n - velocity_shift;
-	dv = (vmax - vmin) / trans_data.nb_freq;  // in cm/s
+	dv = (vmax - vmin) / (nb_freq - 1.); 
 
 	line_opacity = new double[nb_cloud_lay];
 	memset(line_opacity, 0, nb_cloud_lay * sizeof(double));
@@ -327,42 +336,43 @@ void transition_data_container::calc_line_profile(transition_data & trans_data, 
 	vel_width = new double[nb_cloud_lay];
 	memset(vel_width, 0, nb_cloud_lay * sizeof(double));
 
-	optical_depth = alloc_2d_array<double>(trans_data.nb_freq, trans_data.nb_aspect_ratio);
-	memset(*optical_depth, 0, trans_data.nb_freq * trans_data.nb_aspect_ratio * sizeof(double));
+	optical_depth = alloc_2d_array<double>(nb_freq, nb_aspect_ratio);
+	memset(*optical_depth, 0, nb_freq * nb_aspect_ratio * sizeof(double));
 
 	for (lay = 0; lay < nb_cloud_lay; lay++) {
 		vel_width[lay] = pow(2. * BOLTZMANN_CONSTANT * cloud->lay_array[lay].temp_n / diagram->mol.mass
 			+ cloud->lay_array[lay].vel_turb * cloud->lay_array[lay].vel_turb, 0.5);
 
-		// inversion parameter is positive, 
+		// inversion parameter is > 0 for population inversion, 
 		line_opacity[lay] = trans_data.inv_arr[lay] * trans_data.trans->up_lev.g
-			* einst_coeff->arr[trans_data.trans->up_lev.nb][trans_data.trans->low_lev.nb] * cloud->lay_array[lay].mol_conc
-			/ (energy_th * EIGHT_PI * vel_width[lay]);
+			* einst_coeff->arr[trans_data.trans->up_lev.nb][trans_data.trans->low_lev.nb] * cloud->lay_array[lay].mol_conc *ONEDIVBY_SQRT_PI 
+			/(energy_th * EIGHT_PI * vel_width[lay]);
 
 		dust_opacity[lay] = cloud->dust->absorption(energy, cloud->lay_array[lay].dust_grain_conc);
 	}
 
-	for (i = 0; i < trans_data.nb_aspect_ratio; i++) {
-		aspect_ratio = i + 1.;
+	for (i = 0; i < nb_aspect_ratio; i++) {
+		aspect_ratio = 1. + da * i;
 		
-		for (n = 0, vel = vmin; n < trans_data.nb_freq; vel += dv, n++) {
+		for (n = 0, vel = vmin; n < nb_freq; vel += dv, n++) {
 			optical_depth[n][i] = 0.;
 
 			for (lay = 0; lay < nb_cloud_lay; lay++) {
 				x = (vel - cloud->lay_array[lay].vel_n / aspect_ratio) / vel_width[lay];
-				profile = ONEDIVBY_SQRT_PI * exp(-x * x);
+				profile = exp(-x * x);
 
 				// positive for population inversion
-				optical_depth[n][i] += (line_opacity[lay] *profile - dust_opacity[lay]) 
-					* cloud->lay_array[lay].dz *aspect_ratio;
+				if (line_opacity[lay] * profile - dust_opacity[lay] > 0.)
+					optical_depth[n][i] += (line_opacity[lay] *profile - dust_opacity[lay]) 
+						* cloud->lay_array[lay].dz *aspect_ratio;
 			}
 		}
 	}
 
 	// maximal absolute value of tau along the outflow
-	for (i = 0; i < trans_data.nb_aspect_ratio; i++) {
+	for (i = 0; i < nb_aspect_ratio; i++) {
 		x = 0.;
-		for (n = 0; n < trans_data.nb_freq; n++) {
+		for (n = 0; n < nb_freq; n++) {
 			if (x < optical_depth[n][i])
 				x = optical_depth[n][i];
 		}
@@ -370,7 +380,7 @@ void transition_data_container::calc_line_profile(transition_data & trans_data, 
 	}
 
 	trans_data.tau_max = trans_data.tau_vs_aspect_ratio[0];
-	for (n = 0; n < trans_data.nb_freq; n++) {
+	for (n = 0; n < nb_freq; n++) {
 		trans_data.tau_vs_frequency[n] = optical_depth[n][0];
 	}
 
@@ -405,11 +415,12 @@ void transition_data_container::find(double *level_pop, double rel_error)
 				}
 				
 				if (is_inverted) {
-					calc_gain(*tr_data, level_pop);
+					calc_gain(*tr_data);
+					calc_line_profile(*tr_data);
+
 					// the condition on optical depth value: 
-					if (tr_data->tau_eff > min_optical_depth) {
+					if (tr_data->tau_max > min_optical_depth) {
 						calc_exc_temp(*tr_data, level_pop);
-						calc_line_profile(*tr_data, level_pop);
 						data.push_front(*tr_data);
 					}
 				}
@@ -444,10 +455,10 @@ void transition_data_container::add(list<transition>& trans_list, double* level_
         {
             tr_data = new transition_data(nb_cloud_lay, it->low_lev, it->up_lev);
             calc_inv(*tr_data, level_pop);
-            calc_gain(*tr_data, level_pop);
+            calc_gain(*tr_data);
+			calc_line_profile(*tr_data);
             calc_exc_temp(*tr_data, level_pop);
-			calc_line_profile(*tr_data, level_pop);
-
+			
             data.push_front(*tr_data);
             delete tr_data;
         }
@@ -459,7 +470,7 @@ void transition_data_container::add(list<transition>& trans_list, double* level_
 void transition_data_container::calc_saturation_depth(double beaming_factor)
 {
 	int i, l;
-	double intensity, source_function, cmb_intensity, exc_temp;
+	double exp_factor, source_function, cmb_intensity, exc_temp, intensity_0;
 	list<transition_data>::iterator it;
 
 	it = data.begin();
@@ -472,19 +483,24 @@ void transition_data_container::calc_saturation_depth(double beaming_factor)
         if (exc_temp < 0.) {
             source_function = 1. / (1. - exp(it->trans->energy * CM_INVERSE_TO_KELVINS / exc_temp));
 			cmb_intensity = 1. / (exp(it->trans->energy * CM_INVERSE_TO_KELVINS / 2.73) - 1.);
-
-			if (source_function < cmb_intensity)
-				source_function = cmb_intensity;
-
+			intensity_0 = source_function + cmb_intensity;
+	
 			// loss rate is an average for upper and lower levels,
-            intensity = it->loss_rate_arr[l]
-                / (einst_coeff->arr[it->trans->up_lev.nb][it->trans->low_lev.nb] * beaming_factor * source_function);
+			// averaging over the line profile,
+			/*exp_factor = it->loss_rate_arr[l]
+                / (einst_coeff->arr[it->trans->up_lev.nb][it->trans->low_lev.nb] * beaming_factor * intensity_0);
 
-            locate_index(sm_arr, t_nb, intensity, i);
+            locate_index(sm_arr, t_nb, exp_factor, i);
             if (i >= 0 && i < t_nb - 1)
-                it->tau_sat = tau_arr[i] + (tau_arr[i + 1] - tau_arr[i]) * (intensity - sm_arr[i]) / (sm_arr[i + 1] - sm_arr[i]);
+                it->tau_sat = tau_arr[i] + (tau_arr[i + 1] - tau_arr[i]) * (exp_factor - sm_arr[i]) / (sm_arr[i + 1] - sm_arr[i]);
             else if (i >= t_nb - 1)
-                it->tau_sat = tau_arr[t_nb - 1];
+                it->tau_sat = tau_arr[t_nb - 1];*/
+
+			// without averaging over the line profile
+			it->tau_sat = log(it->loss_rate_arr[l] 
+				/ (einst_coeff->arr[it->trans->up_lev.nb][it->trans->low_lev.nb] * beaming_factor * intensity_0));
+			
+			it->temp_sat =  intensity_0 * exp(it->tau_sat) *PLANCK_CONSTANT * it->trans->freq / BOLTZMANN_CONSTANT;
         }       
 		it++;
 	}
@@ -573,10 +589,10 @@ void transition_data_container::save_full_data(const string & fname) const
 				<< setw(15) << "mean lum " << it->lum << " ph/cm3/s" << endl
 				<< "At layer with the highest gain:" << endl
 				<< setw(15) << "inv " << it->inv_arr[fixed_nb] << endl
-				<< setw(15) << "gain " << it->gain_arr[fixed_nb] << endl
-				<< setw(15) << "lum " << it->lum_arr[fixed_nb] << endl
-				<< setw(15) << "satur tau " << it->tau_sat << endl << endl;
-			// J_0 (T_0) used to estimate satur tau - ?
+				<< setw(15) << "gain (cm-1)" << it->gain_arr[fixed_nb] << endl
+				<< setw(15) << "lum (ph/cm3/s) " << it->lum_arr[fixed_nb] << endl
+				<< setw(15) << "satur tau " << it->tau_sat << endl 
+				<< setw(15) << "satur temp (K) " << it->temp_sat << endl << endl;
 			
 			outfile << left << setw(17) << "relative depth " 
 				<< setw(12) << "inversion "
@@ -619,7 +635,8 @@ void transition_data_container::save_full_data(const string & fname) const
 
 void transition_data_container::save_optical_depth_1(const std::string& fname) const
 {
-	int i;
+	int i, nb_aspect_ratio;
+	double da;
 	ofstream outfile;
 	list<transition_data>::const_iterator it;
 
@@ -629,7 +646,7 @@ void transition_data_container::save_optical_depth_1(const std::string& fname) c
 	if (!outfile.is_open())
 		cout << "Error in " << SOURCE_NAME << ": can't open file to write transition data: " << endl << "	" << fname << endl;
 	else {
-		outfile << left << setw(5) << "!";
+		outfile << left << "!" << endl << setw(14) << "!";
 		it = data.begin();
 		while (it != data.end()) {
 			outfile << setw(14) << setprecision(6) << it->trans->freq;
@@ -637,8 +654,11 @@ void transition_data_container::save_optical_depth_1(const std::string& fname) c
 		}
 		outfile << endl;
 
-		for (i = 0; i < data.begin()->nb_aspect_ratio; i++) {
-			outfile << left << setw(5) << i + 1;
+		nb_aspect_ratio = data.begin()->nb_aspect_ratio;
+		da = data.begin()->delta_apect_ratio;
+		
+		for (i = 0; i < nb_aspect_ratio; i++) {
+			outfile << left << setw(14) << setprecision(3) << 1. + da * i;
 			it = data.begin();
 			while (it != data.end()) {
 				outfile << setw(14) << setprecision(3) << it->tau_vs_aspect_ratio[i];
@@ -662,7 +682,8 @@ void transition_data_container::save_optical_depth_2(const std::string& fname) c
 	if (!outfile.is_open())
 		cout << "Error in " << SOURCE_NAME << ": can't open file to write transition data: " << endl << "	" << fname << endl;
 	else {
-		outfile << left << setw(14) << "!";
+		outfile << left << "! gas is moving from the observer, zero velocity is the velocity of the ambient medium (see also Flower et al., MNRAS 409, 29, 2010)"
+			<< endl << setw(14) << "! ";
 		it = data.begin();
 		while (it != data.end()) {
 			outfile << setw(14) << setprecision(6) << it->trans->freq;
@@ -672,10 +693,10 @@ void transition_data_container::save_optical_depth_2(const std::string& fname) c
 
 		vmax = cloud->lay_array[0].vel_n + velocity_shift;
 		vmin = cloud->lay_array[nb_cloud_lay - 1].vel_n - velocity_shift;
-		dv = (vmax - vmin) / data.begin()->nb_freq;
+		dv = (vmax - vmin) / (data.begin()->nb_freq - 1.);
 
 		for (i = 0; i < data.begin()->nb_freq; i++) {
-			outfile << left << setw(14) << setprecision(4) << vmin + i*dv;
+			outfile << left << setw(14) << setprecision(4) << vmin + i*dv;  // cloud->lay_array[0].vel_n - ...
 			it = data.begin();
 			while (it != data.end()) {
 				outfile << setw(14) << setprecision(3) << it->tau_vs_frequency[i];
@@ -697,7 +718,7 @@ void transition_data_container::save_transition(const std::string& fname, const 
     outfile.setf(ios::scientific);
 
     if (!outfile.is_open())
-        cout << "Error in " << SOURCE_NAME << ": can't open file to write transition data;" << endl;
+        cout << "Error in " << SOURCE_NAME << ": can't open file to write transition data: " << fname << endl;
     else
     {
         outfile << left << setw(12) << "!depth(cm)" << setw(12) << "dz(cm)" << setw(12) << "inv(cm-3)" << setw(12) << "gain(cm-1)" 
@@ -735,7 +756,7 @@ void transition_data_container::save_short_data(int process_nb, const string & f
 	outfile.setf(ios::scientific);
 	
 	if (!outfile.is_open()) 
-        cout << "Error in " << SOURCE_NAME << ": can't open file to write transition data;" << endl;
+        cout << "Error in " << SOURCE_NAME << ": can't open file to write transition data: " << fname << endl;
 	else {
         fixed_nb = nb_cloud_lay / 2;
 

@@ -101,33 +101,14 @@ int main()
     int verbosity(1);
     string path, suff1, suff2, sim_data_path, input_data_path, output_path;
     
-    // the path to the directory with spectroscopic data,
-#ifdef __linux__
-    input_data_path = "/disk2/nester/input_data/";
-#else
-    input_data_path = "C:/Users/Александр/Documents/input_data/";
-#endif
-
-    // calculation of OH line overlap statistics;
-//    calc_nb_line_overlaps(input_data_path, output_path = "");
-//    ch3oh_coll_extrapolations(input_data_path, output_path = "");
-
-// check - extrapolated or not data on CH3OH collisions
-    sim_data_path = "C:/Users/Александр/Documents/Данные и графики/paper Cosmic masers in C-type shocks/output_data_2e5/shock_cr1-16_17-5/";    
-    output_path = "C:/Users/Александр/Documents/Данные и графики/paper Cosmic masers in C-type shocks/ch3oh_2e5_extcollcoef/shock_cr1-16_17-5/";
-//    calc_ch3oh_a_masers(input_data_path, sim_data_path, output_path, save_lev_pop = true, verbosity);
-//    calc_ch3oh_e_masers(input_data_path, sim_data_path, output_path, verbosity);
-
-//    output_path = "C:/Users/Александр/Documents/Данные и графики/paper Cosmic masers in C-type shocks/oh_2e5/shock_cr1-16_15/";
-//    calc_oh_masers(input_data_path, sim_data_path, output_path, save_line_stat = true, verbosity); // with line statistics
-    
-//    output_path = "C:/Users/Александр/Documents/Данные и графики/paper Cosmic masers in C-type shocks/oh_nolo_2e5/shock_cr1-16_15/";
-//    calc_oh_masers_test(input_data_path, sim_data_path, output_path, verbosity);
-	
     suff1 = "2e6";
     suff2 = "1-16";
 
+    // the path to the directory with spectroscopic data,
 #ifdef __linux__
+    input_data_path = "/disk2/nester/input_data/";
+    path = "/disk2/nester/sim_data_2020_07/";
+
     stringstream lin_out;
     lin_out.clear();
     lin_out.str("");
@@ -138,11 +119,26 @@ int main()
 
     ofstream out(lin_out.str().c_str(), ios::app);
     streambuf* orig_cout = cout.rdbuf(out.rdbuf());
-    
-    path = "/disk2/nester/sim_data_2020_07/";
 #else
+    input_data_path = "C:/Users/Александр/Documents/input_data/";
     path = "C:/Users/Александр/Documents/Данные и графики/paper Cosmic masers in C-type shocks/";
 #endif
+
+    // calculation of OH line overlap statistics;
+//    calc_nb_line_overlaps(input_data_path, output_path = "");
+//    ch3oh_coll_extrapolations(input_data_path, output_path = "");
+
+// check - extrapolated or not data on CH3OH collisions
+    sim_data_path = path + "output_data_2e5/shock_cr3-15_17-5/";    
+//    output_path = path + "ch3oh_2e5_extcollcoef/shock_cr1-16_17-5/";
+//    calc_ch3oh_a_masers(input_data_path, sim_data_path, output_path, save_lev_pop = true, verbosity);
+//    calc_ch3oh_e_masers(input_data_path, sim_data_path, output_path, verbosity);
+
+    output_path = path + "oh_2e5/shock_cr3-15_17-5/";
+    calc_oh_masers(input_data_path, sim_data_path, output_path, save_line_stat = true, verbosity); // with line statistics
+ /*
+//    output_path = "C:/Users/Александр/Documents/Данные и графики/paper Cosmic masers in C-type shocks/oh_nolo_2e5/shock_cr1-16_15/";
+//    calc_oh_masers_test(input_data_path, sim_data_path, output_path, verbosity);
 
     save_line_stat = false;
     save_lev_pop = false; 
@@ -199,20 +195,20 @@ int main()
             //calc_h2o_para_masers(input_data_path, sim_data_path, output_path, save_lev_pop, is_shock_data_used, verbosity);
             //calc_h2o_ortho_masers(input_data_path, sim_data_path, output_path, save_lev_pop, verbosity);
 
-/*            output_path = path + "nh3_";
-            output_path += suff;
-            calc_nh3_para_masers(input_data_path, sim_data_path, output_path, verbosity);
-            calc_nh3_ortho_masers(input_data_path, sim_data_path, output_path, verbosity);
+//            output_path = path + "nh3_";
+//            output_path += suff;
+//            calc_nh3_para_masers(input_data_path, sim_data_path, output_path, verbosity);
+//            calc_nh3_ortho_masers(input_data_path, sim_data_path, output_path, verbosity);
             
-            output_path = path + "h2co_";
-            output_path += suff;
-            calc_h2co_para_masers(input_data_path, sim_data_path, output_path, verbosity);
-            calc_h2co_ortho_masers(input_data_path, sim_data_path, output_path, verbosity);
- */           
+//            output_path = path + "h2co_";
+//            output_path += suff;
+//            calc_h2co_para_masers(input_data_path, sim_data_path, output_path, verbosity);
+//            calc_h2co_ortho_masers(input_data_path, sim_data_path, output_path, verbosity);
+           
             time_tot = omp_get_wtime() - time_in;
             cout << "time in s for " << omp_get_thread_num() << ": " << time_tot << endl;
         }
-    }
+    }*/
 }
 
 void calc_molecular_populations(cloud_data* cloud, iteration_scheme_lvg* it_scheme_lvg, 
@@ -296,7 +292,7 @@ void save_mol_data(std::string fname, cloud_data* cloud, double* lev_pop, int nb
 
 	output.open(fname.c_str());
     if (!output.is_open())
-        cout << "Error in " << SOURCE_NAME << ": can't open file to write molecule population data;" << endl;
+        cout << "Error in " << SOURCE_NAME << ": can't open file to write molecule population data: " << fname << endl;
     else {
         output << scientific;
         output.precision(4);
@@ -349,7 +345,7 @@ void save_mol_vibr_data(std::string fname, cloud_data* cloud, energy_diagram* mo
 
     output.open(fname.c_str());
     if (!output.is_open())
-        cout << "Error in " << SOURCE_NAME << ": can't open file to write molecule population data;" << endl;
+        cout << "Error in " << SOURCE_NAME << ": can't open file to write molecule population data: " << fname << endl;
     else {
         output << scientific;
         output.precision(4);

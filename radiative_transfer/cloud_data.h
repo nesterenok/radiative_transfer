@@ -55,7 +55,7 @@ public:
 class cloud_data
 {
 public:
-	int nb_lay; // nb of cloud layers	
+	int nb_lay;  // nb of cloud layers	
 	const dust_model* dust;
 	std::vector<const radiation_field*> ext_rad_field;
 	std::vector<cloud_layer> lay_array;
