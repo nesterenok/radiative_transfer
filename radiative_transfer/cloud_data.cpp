@@ -299,7 +299,7 @@ bool set_physical_parameters(std::string data_path, cloud_data* cloud)
             clayer.he_conc *= clayer.tot_h_conc;
             clayer.h_conc *= clayer.tot_h_conc;
            
-            // forth file - sim_dust_data.txt
+            // fourth file - sim_dust_data.txt
             do
                 input4.getline(text_line, MAX_TEXT_LINE_WIDTH);
             while (text_line[0] == '!' || text_line[0] == '#');
@@ -314,6 +314,8 @@ bool set_physical_parameters(std::string data_path, cloud_data* cloud)
             clayer.dust_grain_temp.clear();
             clayer.dust_grain_conc.clear();
 
+            // eof() at the end does not know, if the string end will be reached in the next step, 
+            // it returns true, if there was a failure in reading in the previous cycle step,
             while (!ss.eof()) {
                 ss >> td >> abund;
                 for (j = 0; j < 14; j++) {

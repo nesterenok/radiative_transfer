@@ -8,21 +8,23 @@
 #define USE_TEMPER_EXTRAP_CH3OH 0  // 0 - false, 1 - true;
 
 // The class includes data on rotationally and torsionally inelastic scattering of CH3OH-He system;
-// Rabli, Flower, MNRAS 403, p.2033, 2010; Rabli, Flower, MNRAS 411, p.2093, 2011;
+// Rabli, Flower, MNRAS 403, p.2033, 2010; torsionally elastic transitions, vt= 0,1,2, J <= 15, 10 =< T <= 200 K
+// Rabli, Flower, MNRAS 411, p.2093, 2011; torsionally inelastic transitions, 10 =< T <= 400 K
 class ch3oh_he_coll_data : public collision_data
 {
 public:	
 	ch3oh_he_coll_data(const std::string &, const energy_diagram *, int verbosity =1);
 };
 
-// Includes data on rotationally inelastic scattering of CH3OH and para-H2 system (Rabli, Flower, MNRAS 406, p.95, 2010);
+// Includes data on rotationally inelastic scattering of CH3OH and para-H2 system;
+// Rabli, Flower, MNRAS 406, p.95, 2010; 10 =< T <= 200 K
 class ch3oh_ph2_coll_data : public collision_data
 {
 public:	
 	ch3oh_ph2_coll_data(const std::string &, const energy_diagram *, int verbosity =1);
 };
 
-// Includes data on rotationally inelastic scattering of CH3OH and ortho-H2 system (Rabli, Flower, MNRAS 406, p.95, 2010);
+// Includes data on rotationally inelastic scattering of CH3OH and ortho-H2 system (Rabli, Flower, MNRAS 406, p.95, 2010); 10 =< T <= 200 K
 class ch3oh_oh2_coll_data : public collision_data
 {
 public:	

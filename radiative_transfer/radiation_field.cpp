@@ -71,6 +71,8 @@ stellar_radiation_field::stellar_radiation_field(double t, double r, double d)
 //
 ISRF_Mathis1983::ISRF_Mathis1983() 
 {
+	// approximations are taken from Draine "Physics of the interstellar and intergalactic medium" (2011),
+	// Hocuk et al., A&A 604, id.A58 (2017),
 	name = "ISRF(Mathis_A&A_v128_p212_1983)";
 	en_max = 40816.; // 5.06 eV = 2450 A = 40816.3 cm-1
 }
@@ -78,6 +80,7 @@ ISRF_Mathis1983::ISRF_Mathis1983()
 double ISRF_Mathis1983::get_intensity(double energy) const
 {
 	if (energy < en_max) {
+		// Draine book (2011)
 		double a = 7.e-13/(exp(energy *CM_INVERSE_TO_KELVINS/3000.) - 1.) + 1.65e-13/(exp(energy *CM_INVERSE_TO_KELVINS/4000.) - 1.)
 			+ 1.e-14/(exp(energy *CM_INVERSE_TO_KELVINS/7500.) - 1.);
 		// CMB

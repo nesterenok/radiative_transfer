@@ -93,8 +93,8 @@ void lim_luminosity_lvg(iteration_scheme_lvg* calc_scheme, transition_data_conta
             it->lum += it->lum_arr[lay] * cloud->lay_array[lay].dz;
             it->loss_rate_arr[lay] = (up_loss_rate[lay]* l_up.g + low_loss_rate[lay]* l_low.g)/((double) l_up.g + l_low.g);
             
-            it->pump_rate_arr[lay] = 0.5 * (level_pop[shift + l_up.nb] * up_loss_rate[lay] / l_up.g + level_pop[shift + l_low.nb] * low_loss_rate[lay] / l_low.g)
-                    / (clayer.mol_conc * (clayer.ph2_conc + clayer.oh2_conc));
+            it->pump_rate_arr[lay] = 0.5 * (level_pop[shift + l_up.nb] * up_loss_rate[lay] + level_pop[shift + l_low.nb] * low_loss_rate[lay])
+                    / (clayer.ph2_conc + clayer.oh2_conc);  // level populations are normalized on molecular concentration
         }      
         it->lum /= cloud->get_height();
         it++;

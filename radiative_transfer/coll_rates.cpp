@@ -337,7 +337,7 @@ void dissociation_data::calc_coeff_deriv()
 	}
 }
 
-// the linear extrapolation is used here, check for maximal speed is not implemented for dissociation,
+// the linear extrapolation is used here, check for maximal temperature is not implemented for dissociation,
 double dissociation_data::get_rate(int i, double temp) const 
 {
 //  if (temp > tgrid[jmax-1])

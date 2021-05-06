@@ -6,7 +6,8 @@
 // 10.03.2017. Check for errors. Extinction law was added in the calculations of dust heating by IS radiation;
 // 01.09.2017. Check for errors.
 // 27.11.2017. Error was found: magnitude = 1.086* optical depth;
-// 29.01.2017. Check for errors.
+// 29.01.2018. Check for errors.
+// 09.04.2021. Check for errors.
 
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
@@ -545,9 +546,10 @@ void dust_component::calc_int_emiss()
 	for (i = 0, t = t_min; i < nb_of_temp; i++, t *= t_sc)
 	{
 		temp_arr[i] = t;
-		// the upper limit was chosen to be flexible:
-		int_emiss[i] = qromb<dust_component>(*this, en_min, 40.*t, 1.e-6) 
-			*8*M_PI*PLANCK_CONSTANT *SPEED_OF_LIGHT *SPEED_OF_LIGHT;
+		// the upper limit was chosen to be flexible,
+		// Note, 4pi - integration by angle, absorption cross section per grain in cm2 is taken into account in the integral; 
+		int_emiss[i] = qromb<dust_component>(*this, en_min, 40.*t, 1.e-6)
+			*8*M_PI*PLANCK_CONSTANT *SPEED_OF_LIGHT *SPEED_OF_LIGHT;  
 	}
 	
 	int_emiss_deriv = new double [nb_of_temp-1];
@@ -961,9 +963,9 @@ two_component_dust_model::two_component_dust_model(const string &path, double c_
 	if (c_abund_pah > DBL_EPSILON)
 	{
 		// H/C = 0.5 in PAH molecules;
-		// concentration per H, graphite density is used 2.24 g/cm3;
+		// concentration per H [cm-3 per H], graphite density is used (2.24 g/cm3);
 		pah_conc = 3.*c_abund_pah*12.5*ATOMIC_MASS_UNIT
-			/(4.*2.24*M_PI *RADIUS_OF_PAH_MOLECULES*RADIUS_OF_PAH_MOLECULES*RADIUS_OF_PAH_MOLECULES); 
+			/(4.* M_PI* GRAPHITE_MATERIAL_DENSITY *RADIUS_OF_PAH_MOLECULES*RADIUS_OF_PAH_MOLECULES*RADIUS_OF_PAH_MOLECULES);
 		
 		fname = path + "dust/dust_PAHneut_Draine2001.txt";
 		s_distr = new size_distribution_mono(RADIUS_OF_PAH_MOLECULES, pah_conc);
@@ -972,7 +974,7 @@ two_component_dust_model::two_component_dust_model(const string &path, double c_
 		phem_carb =	new photoel_emission_carbon_dust(path, v = 0);	
 		dust_comp->calc_phel_emiss(phem_carb, cr_uv_flux);
 
-		atom_mass = 8.2*ATOMIC_MASS_UNIT;
+		atom_mass = 8.3*ATOMIC_MASS_UNIT;
 		dust_comp->heat_capacity_const = 2.4*M_PI*M_PI*M_PI*M_PI *BOLTZMANN_CONSTANT *dust_comp->mass
 			/(atom_mass*GRAPHITE_DEBYE_TEMP*GRAPHITE_DEBYE_TEMP*GRAPHITE_DEBYE_TEMP);
 

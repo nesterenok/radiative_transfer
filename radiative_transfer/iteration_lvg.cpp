@@ -167,6 +167,7 @@ void iteration_scheme_lvg::intensity_calc(int up, int low, double *level_pop, do
 	energy = diagram->lev_array[up].energy - diagram->lev_array[low].energy;
 	c = mol_conc/(EIGHT_PI * vel_width *energy*energy*energy);
 	
+    // line absorption and emission coefficients without 1/sqrt(pi),
 	line_emiss = c*einst_coeff->arr[up][low] *level_pop[up];
 	line_opacity = c*einst_coeff->arr[low][up] *level_pop[low] - line_emiss + MIN_LINE_OPACITY;
 	
@@ -512,7 +513,7 @@ void iteration_scheme_line_overlap::intensity_calc(int upl, int lowl, double* le
                 if (line_list[i].nb == 1) {
                     iteration_scheme_lvg::intensity_calc(upl, lowl, level_pop, intensity);
                 }
-                else {
+                else { // probably, the order is not important 
                     if (k == 0) 
                         intensity_calc(upl, lowl, line_list[i].upl[1], line_list[i].lowl[1], level_pop, intensity, a);
                     else if (k == 1)

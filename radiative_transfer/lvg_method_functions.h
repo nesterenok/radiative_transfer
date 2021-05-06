@@ -16,7 +16,7 @@ public:
 };
 
 // Class containing the table with escape probability values;
-// gamma = 1./( line absorp coeff * resonance length), delta = 1./( continuum absorp coeff * resonance length), 
+// gamma = 1./( line absorp coeff * resonance length), delta = 1./( continuum absorp coeff * resonance length), line absorption coeff without 1/sqrt(pi)
 // gamma > 0, delta > 0 for these data,
 // across the resonance length the flow velocity shifts on the magnitude of the thermal velocity, 
 // the function returns the value v, one-sided escape probability is p = 0.5(1-v), 	

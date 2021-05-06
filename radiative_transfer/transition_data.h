@@ -23,7 +23,7 @@ public:
 	// loss rate is an average for the upper and lower levels,
     // pump efficiency = inversion/(n_up/g_up + n_l/g_l) - is dimensionless, loss rate in [s-1], luminosity in [cm-3 s-1] 
 	double* inv_arr, * gain_arr, * lum_arr, * emiss_coeff_arr, * pump_rate_arr, * pump_eff_arr, * loss_rate_arr, * exc_temp_arr;
-	// aspect ration lies in the range [1, max_aspect_ratio], frequency range is determined by the shock speed,
+	// aspect ration lies in the range [1, 1 + (nb_aspect_ratio-1)*delta_apect_ratio], frequency range is determined by the shock speed,
 	double *tau_vs_aspect_ratio, *tau_vs_frequency;
 
 	const transition *trans;
@@ -43,11 +43,9 @@ public:
 class transition_data_container
 {
 protected:
-	int		t_nb;
-    double  min_optical_depth;  // it is necessary for the function find(), by default is very low
+    double  min_optical_depth;  // it is necessary for the function find(), by default is 0.01
 	double  velocity_shift;     // the parameter is for computing spectra (tau dependence on velocity)
-	double	*tau_arr, *sm_arr;
-
+	
 	const energy_diagram	*diagram;
 	const einstein_coeff	*einst_coeff;
 	const cloud_data		*cloud;
@@ -80,21 +78,22 @@ public:
 	// the function deletes the old data on inverted transitions, must be called first,    
     // the inversion, gain, optical depth and excitation temperature are calculated,
     // the transition is added if:
-    // 1. the population inversion in one layer > population error; 2. optical depth is > min_optical_depth,
+    // 1. the population inversion in one layer > population error; 2. optical depth is >= min_optical_depth,
 	void find(double *level_pop, double rel_error);
 
     // must be called after the previous function; the inversion, gain, optical depth and excitation temperature are calculated,
     void add(std::list<transition>& trans_list, double* level_pop); 
 
 	const transition_data* get(const transition *) const;
-	
-	void save_short_data(int process_nb, const std::string & fname) const;
+
+	// process nb is some parameter, may be undefined; the data are added to the existing file (if the file exists) by default,
+	void save_short_data(int process_nb, const std::string & fname) const;  
 	void save_full_data(const std::string & fname) const;
     void save_transition(const std::string& fname, const transition& trans) const;
 	
 	// the dependence of optical depth on aspect ratio,
 	void save_optical_depth_1(const std::string& fname) const; 
-	// the dependence of optical depth along the shock outflow on velocity (frequency)
+	// the dependence of optical depth along the shock direction on velocity (frequency)
 	void save_optical_depth_2(const std::string& fname) const;
 	
 	virtual ~transition_data_container();

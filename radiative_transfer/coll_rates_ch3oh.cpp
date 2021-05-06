@@ -37,10 +37,11 @@ ch3oh_he_coll_data::ch3oh_he_coll_data(const string &path, const energy_diagram 
 
 	nb_lev = ch3oh_levels->nb_lev;
 	imax = nb_lev*(nb_lev-1)/2;
-	jmax = 41; // 40 temperature values in the CH3OH-He rovibrational collision data, +1 value for T = 0 K;
+	jmax = 41; // 40 temperature values in the CH3OH-He ro-vibrational collision data, +1 value for T = 0 K;
 
 	tgrid = new double [jmax];
-	tgrid[0] = 0.;
+	for (i = 0; i < jmax; i++)
+		tgrid[i] = i * 10.;  // T = 0-400 K with a step 10,
 
 	coeff = alloc_2d_array<double>(imax, jmax);
 	memset(*coeff, 0, jmax *imax *sizeof(double));
@@ -55,7 +56,7 @@ ch3oh_he_coll_data::ch3oh_he_coll_data(const string &path, const energy_diagram 
 	for (vt = 0; vt <= vt_max; vt++)
 	{
 		s.str("");
-		if (rounding(2.*ch3oh_levels->mol.spin) == 3) s << 'a';
+		if (rounding(2.*ch3oh_levels->mol.spin) == 3) s << 'a';  // the spin of A type methanol molecule is 3/2, E type methanol molecule 1/2;
 		else s << 'e';
 		s << vt;
 		
@@ -106,8 +107,7 @@ ch3oh_he_coll_data::ch3oh_he_coll_data(const string &path, const energy_diagram 
 					i1 = nb_arr[k]; // initial
 					i2 = nb_arr[i]; // final
 
-					if (i1 != -1 && i2 != -1)
-					{
+					if (i1 != -1 && i2 != -1) {
 						if (i1 > i2) 
 						{
 							l = i1*(i1-1)/2 + i2;
@@ -129,11 +129,14 @@ ch3oh_he_coll_data::ch3oh_he_coll_data(const string &path, const energy_diagram 
 			<< "  temperature range " << (int) tgrid[1] << " - " << (int) tgrid[20] << endl;
 		}	
 	}
-	// The extrapolation of rate coefficients to higher temperatures;
-	for (i = 0; i < imax; i++)
-	{
-		for (j = 21; j < jmax; j++)
-			coeff[i][j] = coeff[i][20]; 
+	// The extrapolation of rate coefficients to higher temperatures; 
+	for (i = 0; i < imax; i++){
+		for (j = 21; j < jmax; j++) {
+			if (USE_TEMPER_EXTRAP_CH3OH)
+				coeff[i][j] = coeff[i][20] * sqrt(tgrid[j] / tgrid[20]);
+			else
+				coeff[i][j] = coeff[i][20];
+		}
 	}
 
 	// Further there are collisional coefficients, that include ro-vibrational transitions; 
@@ -190,8 +193,7 @@ ch3oh_he_coll_data::ch3oh_he_coll_data(const string &path, const energy_diagram 
 				i1 = nb_arr[k]; // initial
 				i2 = nb_arr[i]; // final
 
-				if (i1 != -1 && i2 != -1)
-				{
+				if (i1 != -1 && i2 != -1) {
 					if (i1 > i2) 
 					{
 						l = i1*(i1-1)/2 + i2;
@@ -306,8 +308,7 @@ ch3oh_ph2_coll_data::ch3oh_ph2_coll_data(const string &path, const energy_diagra
 					i1 = nb_arr[k]; // initial
 					i2 = nb_arr[i]; // final
 
-					if (i1 != -1 && i2 != -1)
-					{
+					if (i1 != -1 && i2 != -1) {
 						if (i1 > i2) 
 						{
 							l = i1*(i1-1)/2 + i2;
@@ -413,8 +414,7 @@ ch3oh_oh2_coll_data::ch3oh_oh2_coll_data(const string &path, const energy_diagra
 				i1 = nb_arr[k]; // initial
 				i2 = nb_arr[i]; // final
 
-				if (i1 != -1 && i2 != -1)
-				{
+				if (i1 != -1 && i2 != -1) {
 					if (i1 > i2) 
 					{
 						l = i1*(i1-1)/2 + i2;
@@ -508,7 +508,7 @@ void ch3oh_collisions::get_rate_neutrals(const energy_level &up_lev, const energ
 				down_rate = coll_data[1]->get_rate(up_lev.nb, low_lev.nb, indices[1], max_temp[1]) * (concentration[1] + concentration[2]) 
 					* sqrt(temp_neutrals / max_temp[1]);
 		}
-		// CH3OH-He
+		// CH3OH-He, the data on collisions with He is for torsionally elastic and inelastic, and temperature range is common,
 		if (temp_neutrals < max_temp[0] || !USE_TEMPER_EXTRAP_CH3OH)
 			down_rate += coll_data[0]->get_rate(up_lev.nb, low_lev.nb, indices[0], (temp_neutrals < max_temp[0]) ? temp_neutrals : max_temp[0]) * concentration[0];
 		else

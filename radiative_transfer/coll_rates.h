@@ -109,7 +109,7 @@ protected:
 
 public:
 	// i - number of the level, temp - gas temperature, linear interpolation is used;
-    // there is linear extrapolation of the rate at tamperatures higher than the maximal value for which data exist,
+    // there is linear extrapolation of the rate at temperatures higher than the maximal value for which data exist,
 	virtual double get_rate(int i, double temp) const;
 	
 	// the function calculates the array of rate derivatives;

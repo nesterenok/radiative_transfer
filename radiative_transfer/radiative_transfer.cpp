@@ -23,10 +23,11 @@
 
 #define SOURCE_NAME "radiative_transfer.cpp"
 #define NB_JOINED_LAYERS 2
-#define MAX_NB_ITER_EXT 15000
-#define MAX_NB_ITER_ACC 150
+#define MAX_NB_ITER_EXT 15000  // extended
+#define MAX_NB_ITER_ACC 150  // with acceleration
 
 // These parameters must be the same as in the C-type shock simulations (are necessary for dust model),
+// Check the dust model - must be the same as in the shock model,
 #define HE_TO_H_NB_RATIO 0.09
 #define STANDARD_NB_CR_PHOTONS 3000.
 #define MICROTURBULENT_SPEED 3.e+4  // in cm/s, must be the same as in the shock simulations,
@@ -45,19 +46,21 @@ const double rel_population_error = 1.e-5;
 //const double population_error = 1.e-8; // not used
 
 // OH radiative transfer calculations - with line overlap, population densities are saved
+// input_data_path - path to the spectroscopic, collisional data and etc.,
+// sim_data_path - path to the data with shock wave simulations,
 void calc_oh_masers(string input_data_path, string sim_data_path, string output_path, bool save_line_stat, int verbosity);
 
 // OH radiative transfer calculations - no line overlap,
-void calc_oh_masers_test(string input_data_path, string sim_data_path, string output_path, int verbosity);
+void calc_oh_masers_nolineoverlap(string input_data_path, string sim_data_path, string output_path, int verbosity);
 
 // CH3OH radiative transfer calculations,
-void calc_ch3oh_a_masers(string input_data_path, string sim_data_path, string output_path, bool save_lev_pop, int verbosity);
-void calc_ch3oh_e_masers(string input_data_path, string sim_data_path, string output_path, int verbosity);
+void calc_ch3oh_a_masers(string input_data_path, string sim_data_path, string output_path, bool save_pop_dens, int verbosity);
+void calc_ch3oh_e_masers(string input_data_path, string sim_data_path, string output_path, bool save_pop_dens, int verbosity);
 
 // H2O radiative transfer calculations, population densities are saved
 // the data on population densities obtained by shock modeling may be used (for test)
-void calc_h2o_para_masers(string input_data_path, string sim_data_path, string output_path, bool save_lev_pop, bool is_shock_data_used, int verbosity);
-void calc_h2o_ortho_masers(string input_data_path, string sim_data_path, string output_path, bool save_lev_pop, int verbosity);
+void calc_h2o_para_masers(string input_data_path, string sim_data_path, string output_path, bool save_pop_dens, bool is_shock_data_used, int verbosity);
+void calc_h2o_ortho_masers(string input_data_path, string sim_data_path, string output_path, bool save_pop_dens, int verbosity);
 
 // NH3 radiative transfer calculations,
 void calc_nh3_para_masers(string input_data_path, string sim_data_path, string output_path, int verbosity);
@@ -78,7 +81,7 @@ void calc_molecular_populations(cloud_data* cloud, iteration_scheme_lvg* it_sche
     energy_diagram* mol_levels, einstein_coeff* mol_einst, collisional_transitions* mol_coll, double* mol_popul, int nb_lev, 
     bool acceleration, int verbosity);
 
-// saving the level populations in the format of the c-type shock simulations
+// saving the level populations in the format of the c-type shock simulations:
 void save_mol_data(std::string fname, cloud_data* cloud, double *lev_pop, int nb_lev);
 void save_mol_vibr_data(std::string fname, cloud_data* cloud, energy_diagram* mol_levels, double* lev_pop, int nb_lev);  // free format
 
@@ -97,17 +100,16 @@ int main()
     }
 #endif
 
-    bool save_line_stat, save_lev_pop, is_shock_data_used;
+    bool save_line_stat, save_pop_dens, is_shock_data_used;
     int verbosity(1);
     string path, suff1, suff2, sim_data_path, input_data_path, output_path;
     
-    suff1 = "2e6";
-    suff2 = "1-16";
+    suff1 = "2e6";  // gas density, 2e4, 2e5, 2e6
+    suff2 = "1-16";  // cosmic ray ionization rate, 1-17, 1-16, 1-15, 3-15, 1-14
 
-    // the path to the directory with spectroscopic data,
-#ifdef __linux__
-    input_data_path = "/disk2/nester/input_data/";
-    path = "/disk2/nester/sim_data_2020_07/";
+#ifdef __linux__ 
+    input_data_path = "/disk2/nester/input_data/";  // the path to the folder with spectroscopic data,
+    path = "/disk2/nester/sim_data_2020_07/";  // path to the folder with shock wave simulations data
 
     stringstream lin_out;
     lin_out.clear();
@@ -129,22 +131,20 @@ int main()
 //    ch3oh_coll_extrapolations(input_data_path, output_path = "");
 
 // check - extrapolated or not data on CH3OH collisions
-    sim_data_path = path + "output_data_2e5/shock_cr3-15_17-5/";    
-//    output_path = path + "ch3oh_2e5_extcollcoef/shock_cr1-16_17-5/";
-//    calc_ch3oh_a_masers(input_data_path, sim_data_path, output_path, save_lev_pop = true, verbosity);
-//    calc_ch3oh_e_masers(input_data_path, sim_data_path, output_path, verbosity);
+    sim_data_path = path + "output_data_2e6/shock_cr1-16_17-5/";    
+    output_path = path + "ch3oh_2e6/shock_cr1-16_17-5/";
 
-    output_path = path + "oh_2e5/shock_cr3-15_17-5/";
-    calc_oh_masers(input_data_path, sim_data_path, output_path, save_line_stat = true, verbosity); // with line statistics
- /*
-//    output_path = "C:/Users/Александр/Documents/Данные и графики/paper Cosmic masers in C-type shocks/oh_nolo_2e5/shock_cr1-16_15/";
-//    calc_oh_masers_test(input_data_path, sim_data_path, output_path, verbosity);
+//    calc_ch3oh_a_masers(input_data_path, sim_data_path, output_path, save_pop_dens = true, verbosity);
+//    calc_ch3oh_e_masers(input_data_path, sim_data_path, output_path, save_pop_dens = true, verbosity);
+//    calc_h2o_para_masers(input_data_path, sim_data_path, output_path, save_pop_dens = true, is_shock_data_used = true, verbosity);
+//    calc_oh_masers(input_data_path, sim_data_path, output_path, save_line_stat = true, verbosity);  // with line statistics
+//    calc_oh_masers_nolineoverlap(input_data_path, sim_data_path, output_path, verbosity);  // no line overlap
 
     save_line_stat = false;
-    save_lev_pop = false; 
+    save_pop_dens = false; 
     is_shock_data_used = false;
     verbosity = false;
-#pragma omp parallel shared(input_data_path, path, suff1, suff2, save_line_stat, save_lev_pop, is_shock_data_used, verbosity), private(output_path, sim_data_path)
+#pragma omp parallel shared(input_data_path, path, suff1, suff2, save_line_stat, save_pop_dens, is_shock_data_used, verbosity), private(output_path, sim_data_path)
     {
         int i, j, k;
         double time_in, time_tot, v;
@@ -179,21 +179,21 @@ int main()
             cout << "Simulation data: " << sim_data_path << endl;
 
             // line overlap is taken into account,
-            // check - extended or usual data on OH-H2 collisions
+            // check in coll_rates_oh.h - extended or usual data on OH-H2 collisions
             output_path = path + "oh_";
             output_path += suff;
             calc_oh_masers(input_data_path, sim_data_path, output_path, save_line_stat, verbosity);  // no line statistics
 
-            // check - extrapolated or not data on CH3OH collisions
+            // check in coll_rates_ch3oh.h - extrapolated or not data on CH3OH collisions
             output_path = path + "ch3oh_";
             output_path += suff;
-            calc_ch3oh_a_masers(input_data_path, sim_data_path, output_path, save_lev_pop, verbosity);
-            calc_ch3oh_e_masers(input_data_path, sim_data_path, output_path, verbosity);
+            calc_ch3oh_a_masers(input_data_path, sim_data_path, output_path, save_pop_dens, verbosity);
+            calc_ch3oh_e_masers(input_data_path, sim_data_path, output_path, save_pop_dens, verbosity);
                         
             output_path = path + "h2o_";
             output_path += suff;
-            //calc_h2o_para_masers(input_data_path, sim_data_path, output_path, save_lev_pop, is_shock_data_used, verbosity);
-            //calc_h2o_ortho_masers(input_data_path, sim_data_path, output_path, save_lev_pop, verbosity);
+            calc_h2o_para_masers(input_data_path, sim_data_path, output_path, save_pop_dens, is_shock_data_used, verbosity);
+            calc_h2o_ortho_masers(input_data_path, sim_data_path, output_path, save_pop_dens, verbosity);
 
 //            output_path = path + "nh3_";
 //            output_path += suff;
@@ -208,7 +208,7 @@ int main()
             time_tot = omp_get_wtime() - time_in;
             cout << "time in s for " << omp_get_thread_num() << ": " << time_tot << endl;
         }
-    }*/
+    }
 }
 
 void calc_molecular_populations(cloud_data* cloud, iteration_scheme_lvg* it_scheme_lvg, 
@@ -219,7 +219,6 @@ void calc_molecular_populations(cloud_data* cloud, iteration_scheme_lvg* it_sche
     
     vector<int> bad_layers;
     cloud_layer clayer;
-
     iteration_control<iteration_scheme_lvg> it_control(it_scheme_lvg);
 
     if (acceleration)
@@ -229,17 +228,17 @@ void calc_molecular_populations(cloud_data* cloud, iteration_scheme_lvg* it_sche
     nb_cloud_lay = cloud->nb_lay;
     is_solution_found_prev = false;
 
-    for (lay_nb = 0; lay_nb < nb_cloud_lay; lay_nb++) {
+    for (lay_nb = 0; lay_nb < nb_cloud_lay; lay_nb++) 
+    {
         clayer = cloud->lay_array[lay_nb];
-
         it_scheme_lvg->set_vel_grad(clayer.velg_n);
         it_scheme_lvg->set_dust_parameters(clayer.dust_grain_conc, clayer.dust_grain_temp);
         it_scheme_lvg->set_parameters(clayer.temp_n, clayer.temp_el, clayer.el_conc, clayer.h_conc, clayer.ph2_conc, clayer.oh2_conc, clayer.he_conc,
             clayer.mol_conc, clayer.vel_turb);
 
         cout << lay_nb << " ";
-   
         is_solution_found = false;
+
         if (lay_nb > 0 && is_solution_found_prev) {
             memcpy(mol_popul + lay_nb * nb_lev, mol_popul + (lay_nb - 1) * nb_lev, nb_lev * sizeof(double));
         }
@@ -508,7 +507,7 @@ void calc_oh_masers(string input_data_path, string sim_data_path, string output_
     delete cloud;
 }
 
-void calc_oh_masers_test(string input_data_path, string sim_data_path, string output_path, int verbosity)
+void calc_oh_masers_nolineoverlap(string input_data_path, string sim_data_path, string output_path, int verbosity)
 {
     bool acceleration, do_simdata_exist;
     int nb_cloud_lay, nb_lev_oh, isotope;
@@ -607,7 +606,7 @@ void calc_oh_masers_test(string input_data_path, string sim_data_path, string ou
     delete cloud;
 }
 
-void calc_ch3oh_a_masers(string input_data_path, string sim_data_path, string output_path, bool save_lev_pop, int verbosity)
+void calc_ch3oh_a_masers(string input_data_path, string sim_data_path, string output_path, bool save_pop_dens, int verbosity)
 {
     bool acceleration, do_simdata_exist;  
     int isotope, nb_lev_ch3oh, nb_vibr_ch3oh, ang_mom_max, nb_cloud_lay;
@@ -697,11 +696,16 @@ void calc_ch3oh_a_masers(string input_data_path, string sim_data_path, string ou
         sstr << output_path + "inv_trans_" << ch3oh_a_mol.name << ".txt";
         trans_data_ch3oh_a->save_full_data(sstr.str());
 
-        if (save_lev_pop) {
-            sstr.clear();
-            sstr.str("");
-            sstr << output_path + "pop_dens_" + ch3oh_a_mol.name + ".txt";
-            save_mol_data(sstr.str(), cloud, ch3oh_a_popul, nb_lev_ch3oh);
+        sstr.clear();
+        sstr.str("");
+        sstr << output_path + "inv_trans_" << ch3oh_a_mol.name << "_short.txt";
+        trans_data_ch3oh_a->save_short_data(-1, sstr.str());
+
+        if (save_pop_dens) {
+            //sstr.clear();
+            //sstr.str("");
+            //sstr << output_path + "pop_dens_" + ch3oh_a_mol.name + ".txt";
+            //save_mol_data(sstr.str(), cloud, ch3oh_a_popul, nb_lev_ch3oh);
 
             sstr.clear();
             sstr.str("");
@@ -730,7 +734,7 @@ void calc_ch3oh_a_masers(string input_data_path, string sim_data_path, string ou
     delete cloud;
 }
 
-void calc_ch3oh_e_masers(string input_data_path, string sim_data_path, string output_path, int verbosity)
+void calc_ch3oh_e_masers(string input_data_path, string sim_data_path, string output_path, bool save_pop_dens, int verbosity)
 {
     bool acceleration, do_simdata_exist;
     int isotope, nb_lev_ch3oh, nb_vibr_ch3oh, ang_mom_max, nb_cloud_lay;
@@ -819,6 +823,23 @@ void calc_ch3oh_e_masers(string input_data_path, string sim_data_path, string ou
 
         sstr.clear();
         sstr.str("");
+        sstr << output_path + "inv_trans_" << ch3oh_e_mol.name << "_short.txt";
+        trans_data_ch3oh_e->save_short_data(-1, sstr.str());
+
+        if (save_pop_dens) {
+            //sstr.clear();
+            //sstr.str("");
+            //sstr << output_path + "pop_dens_" + ch3oh_a_mol.name + ".txt";
+            //save_mol_data(sstr.str(), cloud, ch3oh_a_popul, nb_lev_ch3oh);
+
+            sstr.clear();
+            sstr.str("");
+            sstr << output_path + "vibr_dens_" + ch3oh_e_mol.name + ".txt";
+            save_mol_vibr_data(sstr.str(), cloud, ch3oh_e_levels, ch3oh_e_popul, nb_lev_ch3oh);
+        }
+
+        sstr.clear();
+        sstr.str("");
         sstr << output_path + "opt_depth_aratio_" + ch3oh_e_mol.name + ".txt";
         trans_data_ch3oh_e->save_optical_depth_1(sstr.str());
 
@@ -839,7 +860,7 @@ void calc_ch3oh_e_masers(string input_data_path, string sim_data_path, string ou
 }
 
 // check acceleration mode and nb of iterations, 
-void calc_h2o_para_masers(string input_data_path, string sim_data_path, string output_path, bool save_lev_pop, bool is_shock_data_used, int verbosity)
+void calc_h2o_para_masers(string input_data_path, string sim_data_path, string output_path, bool save_pop_dens, bool is_shock_data_used, int verbosity)
 {
     bool acceleration, do_simdata_exist;
     int isotope, nb_lev_h2o, nb_vibr_h2o, nb_cloud_lay;
@@ -931,7 +952,7 @@ void calc_h2o_para_masers(string input_data_path, string sim_data_path, string o
         sstr << output_path + "inv_trans_" << ph2o_mol.name << ".txt";
         trans_data_ph2o->save_full_data(sstr.str());
 
-        if (save_lev_pop) {
+        if (save_pop_dens) {
             sstr.clear();
             sstr.str("");
             sstr << output_path + "pop_dens_" + ph2o_mol.name + ".txt";
@@ -950,7 +971,7 @@ void calc_h2o_para_masers(string input_data_path, string sim_data_path, string o
 }
 
 // check acceleration mode and nb of iterations, 
-void calc_h2o_ortho_masers(string input_data_path, string sim_data_path, string output_path, bool save_lev_pop, int verbosity)
+void calc_h2o_ortho_masers(string input_data_path, string sim_data_path, string output_path, bool save_pop_dens, int verbosity)
 {
     bool acceleration, do_simdata_exist;
     int isotope, nb_lev_h2o, nb_vibr_h2o, nb_cloud_lay;
@@ -1037,7 +1058,7 @@ void calc_h2o_ortho_masers(string input_data_path, string sim_data_path, string 
         sstr << output_path + "inv_trans_" << oh2o_mol.name << ".txt";
         trans_data_oh2o->save_full_data(sstr.str());
 
-        if (save_lev_pop) {
+        if (save_pop_dens) {
             sstr.clear();
             sstr.str("");
             sstr << output_path + "pop_dens_" + oh2o_mol.name + ".txt";

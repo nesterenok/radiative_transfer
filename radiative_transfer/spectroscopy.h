@@ -107,7 +107,8 @@ public:
 
 // CH3OH molecule (Mekhtiev et al., Journal of Molecular Spectroscopy 194, 171-178, 1999);
 // the maximum number of levels with vt <= 2 and angular momentum <= 22 is 1455;
-// either A- or E- CH3OH spin isomers is considered - molecule spin must be defined, 
+// either A or E CH3OH spin isomers is considered - molecule spin must be defined, A type - spin 3/2, E type - spin 1/2;
+// A- and A+ differ in the sign of k1,
 class ch3oh_diagram : public energy_diagram
 {
 public:

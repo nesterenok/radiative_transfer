@@ -17,7 +17,7 @@
 
 // size of large dust grains and PAH molecules, in cm:
 #define RADIUS_OF_LARGE_GRAINS 0.5e-5
-#define RADIUS_OF_PAH_MOLECULES 4.e-8 // Draine, Li, ApJ 657, pp. 810-837 (2007); PAH radius must be < 20 A;
+#define RADIUS_OF_PAH_MOLECULES 4.e-8 // Draine, Li, ApJ 657, pp. 810-837 (2007); PAH radius must be < 20 A; 1 A = 1.e-8 cm;
 
 
 // material of large dust grains, 1 - silicate, 0 - carbonaceous, 
@@ -38,13 +38,13 @@ class size_distribution
 public:
 	// true - the grain size distribution; false - grains have one size; 
 	bool distribution;
-	double norm, rad, rad_min, rad_max;
+	double norm, rad, rad_min, rad_max;  // radius in cm;
 	
 	// there is no check if radius lies in the given range in the operator():
 	virtual double operator() (double radius) const { return 0.; }
 	virtual double operator() () const { return norm; }
 
-	// for monosize distribution:
+	// for mono-size distribution:
 	size_distribution(double r);
 	// it is assumed that rmin < rmax:
 	size_distribution(double rmin, double rmax);
@@ -138,7 +138,7 @@ protected:
 	int nb_ph_en, nb_of_temp, nb_of_z, verbosity;
 	int *ch_arr;
 	
-	double t;
+	double t;  // auxiliary variable to store temperature, is necessary in operator();
 	// energy stored in arrays has dimension [erg];
 	double *ph_en_arr, *temp_arr, *abs_perH_coeff, *abs_perH_coeff_deriv, *ext_perH_coeff, *ext_perH_coeff_deriv, 
 		*abs_coeff, *abs_coeff_deriv, *int_emiss, *int_emiss_deriv, *isrf_uv_phel_rate, *isrf_uv_phel_energy, 
@@ -152,7 +152,7 @@ protected:
 public:
 	int zmin, zmax;
 	// wvl_exp is the exponent in the opacity dependence on the wavelength at large wavelengths;
-	// area is pi*a*a, 
+	// area is pi*a*a, mass of one grain in g
 	// heat capacity constant must be defined (debye model of heat capacity of grains, 
 	// Draine & Li, ApJ 551, p.807, 2001; Cuppen et al., MNRAS 367, p.1757, 2006)
 	// Cv = 12*M_PI^4/5 N k_B/(T_D)^3 *T^3, N - number of atoms in the grain;
@@ -179,7 +179,7 @@ public:
 	// cross section for absorption of one grain, in [cm2]:
 	double absorption(double energy) const;
 
-	// the amount of energy, that one dust grain emmits [erg s-1]:
+	// the amount of energy, that one dust grain emits [erg s-1]:
 	double get_int_emiss(double temperature) const;
 	
 	// returned parameters: reaction rate in s-1 (rate of electron emission by one grain), electron energy in erg:
@@ -238,7 +238,7 @@ public:
 class two_component_dust_model : public dust_model
 {
 public:
-	// carbon abundance in PAH molecules, per H, typical value 10^{-5};
+	// carbon nuclei abundance in PAH molecules, per H, typical value 10^{-5};
 	// dust gas mass ratio is for large grains; here, pah mass density in gas is assumed to be negligibly small;
 	two_component_dust_model(const std::string &path, double c_abund_pah, double dg_ratio, double he_to_h_nb_ratio, 
 		double cr_uv_flux, int verbosity = 1);
@@ -278,7 +278,7 @@ public:
 class dust_heating_ISRF
 {
 protected:
-	int nb_of_comp, nb_ve; // nb of dust components, nb of visiual extinction values;
+	int nb_of_comp, nb_ve; // nb of dust components, nb of visual extinction values;
 	double *extinction, *heating_cr, **heating_ra, **heating_ir, **heating_vis, **heating_uv, **heating_fuv; // extinction in magnitudes;
 	std::string name;
 

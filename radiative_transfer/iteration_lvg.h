@@ -87,7 +87,7 @@ public:
 class iteration_scheme_line_overlap : public iteration_scheme_lvg
 {
 protected:
-    double max_dx; // may be different tha the max value in file data;
+    double max_dx; // may be different than the max value in file data;
     // lines are grouped in the sets of HF splitted lines, the list contains all lines, the number of lines in one group - 1 or 2; 
     std::vector<hfs_lines> line_list; 
     const lvg_line_overlap_data *line_overlap1, *line_overlap2;

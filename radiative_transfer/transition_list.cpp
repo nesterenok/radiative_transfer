@@ -163,7 +163,7 @@ void ch3oh_classI_trans_list(const energy_diagram* diagram, list<transition>& tr
             delete trans;
         }
 
-        up = diagram->get_nb(0, 10, 2);	//  25.878239 GHz
+        up = diagram->get_nb(0, 10, 2);	//  25.878239 GHz, detected
         low = diagram->get_nb(0, 10, 1);
 
         if (up != -1 && low != -1) {
