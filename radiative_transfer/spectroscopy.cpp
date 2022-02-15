@@ -19,6 +19,10 @@
 	10.05.2018. NH3 molecule data were added.
     06.04.2020. The energy_level class, operator == was changed.
 	09.06.2020. The statistical weight calculation is done unique in all classes (the j and spin are taken into account).
+	22.10.2021.	New member "el" (electronic state nb) is added in class "energy_level", operator == was changed accordingly;
+		new member "electronic_state" is added to the class "energy_diagram", 
+		new constructor is added to the class "h2_diagram" (to load the electronic excited levels),
+		the Einstein coefficient and cross section parameters are added to the class "transition", new constructor is added in this class;
 */
 
 #ifndef _USE_MATH_DEFINES
@@ -53,10 +57,10 @@ molecule::molecule(const string &n, int is, double m, double sp)
 //
 
 energy_level::energy_level()
-: nb(0), v(0), syminv(0), g(0), j(0.), k1(0.), k2(0.), spin(0.), energy(0.), hf(0.), name("")
+: nb(0), v(0), syminv(0), g(0), el(0), j(0.), k1(0.), k2(0.), spin(0.), energy(0.), hf(0.), name("")
 {;}
 
-energy_diagram::energy_diagram(molecule m, int verb) : mol(m), nb_lev(0), verbosity(verb), hyperfine_splitting(false)
+energy_diagram::energy_diagram(molecule m, int verb) : mol(m), nb_lev(0), verbosity(verb), hyperfine_splitting(false), electronic_state(0)
 {;}
 
 energy_diagram::~energy_diagram() {
@@ -130,6 +134,87 @@ int h2_diagram::get_nb(int v, double j) const
 	return -1;
 }
 
+h2_diagram::h2_diagram(int el_state, const string& data_path, molecule m, int& n_l, int verbosity)
+	: energy_diagram(m, verbosity)
+{
+	char text_line[MAX_TEXT_LINE_WIDTH];
+	int i, l, v, j;
+	double energy;
+
+	string fname;
+	stringstream ss;
+	ifstream input;
+	energy_level level;
+	
+	// the electronic state is not default,
+	electronic_state = el_state;
+	if (electronic_state == 1) { // B state,
+		fname = "h2_cloudy_data/energy_B.dat";
+	}
+	else if (electronic_state == 2) { // C+ state
+		fname = "h2_cloudy_data/energy_C_plus.dat";
+	}
+	else if (electronic_state == 3) { // C- state
+		fname = "h2_cloudy_data/energy_C_minus.dat";
+	}
+	else {
+		cout << "Error in " << SOURCE_NAME << ": the unknown electronic state of H2 molecule" << endl;
+		exit(1);
+	}
+	
+	fname = data_path + fname;
+	input.open(fname.c_str(), ios_base::in);
+
+	if (!input.is_open()) {
+		cout << "Error in " << SOURCE_NAME << ": can't open " << fname << endl;
+		exit(1);
+	}
+	
+	while (!input.eof()) {
+		// comment lines are read (all lines must be commented, no empty lines at the file end)
+		do
+			input.getline(text_line, MAX_TEXT_LINE_WIDTH);
+		while (text_line[0] == '#');
+
+		if (text_line[0] == '\0')
+			break;
+
+		ss.clear();
+		ss.str(text_line);
+		ss >> v >> j >> energy;
+
+		level.el = electronic_state;
+		level.v = v;
+		level.j = j;
+		level.energy = energy;  // energy in cm-1 in the files
+
+		// determining ortho-/para- state, 
+		if (electronic_state == 0 || electronic_state == 3)  // for C- is the same as for ground X state,
+			level.spin = j % 2;
+		else 
+			level.spin = (j + 1) % 2;
+
+		level.g = (2 * j + 1) * rounding(2. * level.spin + 1);
+		lev_array.push_back(level);
+	}
+	input.close();
+	sort(lev_array.begin(), lev_array.end());
+
+	// the nb of levels can be higher or lower than the value given;
+	l = (int)lev_array.size() - n_l;
+	for (i = 0; i < l; i++) {
+		lev_array.pop_back();
+	}
+
+	// numbers of levels is corrected:
+	nb_lev = n_l = (int)lev_array.size();
+	for (i = 0; i < nb_lev; i++) {
+		lev_array[i].nb = i;
+	}
+	report(fname);
+}
+
+
 h2o_diagram::h2o_diagram(const string &data_path, molecule m, int &n_l, int nb_vibr, int verb) : energy_diagram(m, verb)
 {
 	char text_line[MAX_TEXT_LINE_WIDTH];
@@ -153,6 +238,7 @@ h2o_diagram::h2o_diagram(const string &data_path, molecule m, int &n_l, int nb_v
 		exit(1);
 	}
 	
+	input.getline(text_line, MAX_TEXT_LINE_WIDTH);
 	input.getline(text_line, MAX_TEXT_LINE_WIDTH);
 	input >> i_max;
 
@@ -1136,12 +1222,21 @@ h2co_einstein_coeff::h2co_einstein_coeff(const std::string& path, const energy_d
 //
 
 transition::transition(energy_level lowl, energy_level upl)
-: low_lev(lowl), up_lev(upl)
+: low_lev(lowl), up_lev(upl), einst_coeff(0.), cross_section(0.)
 {
 	energy = up_lev.energy - low_lev.energy;
 	// the frequency in Hz, energy in cm-1, speed in cm/s
 	freq = SPEED_OF_LIGHT *energy; 
 }
+
+transition::transition(energy_level lowl, energy_level upl, double ec)
+	: low_lev(lowl), up_lev(upl), einst_coeff(ec)
+{
+	energy = up_lev.energy - low_lev.energy;
+	freq = SPEED_OF_LIGHT * energy;
+	cross_section = einst_coeff *up_lev.g /(EIGHT_PI*energy*energy *low_lev.g);
+}
+
 
 //
 // Functions

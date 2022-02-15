@@ -12,7 +12,34 @@ void ch3oh_classI_trans_list(const energy_diagram* diagram, list<transition>& tr
     // A methanol species
     if (rounding(2. * diagram->mol.spin) == 3)
     {
-        // K < 0 means A- level, 
+        // K < 0 means A- level,
+        up = diagram->get_nb(0, 1, -1);	//  0.83428 GHz; 
+        low = diagram->get_nb(0, 1, 1);
+
+        if (up != -1 && low != -1) {
+            trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+            trans_list.push_back(*trans);
+            delete trans;
+        }
+
+        up = diagram->get_nb(0, 2, -1);	//  2.5027 GHz; 
+        low = diagram->get_nb(0, 2, 1);
+
+        if (up != -1 && low != -1) {
+            trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+            trans_list.push_back(*trans);
+            delete trans;
+        }
+
+        up = diagram->get_nb(0, 11, 1);	//  20.171 GHz; 
+        low = diagram->get_nb(0, 10, 2);
+
+        if (up != -1 && low != -1) {
+            trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+            trans_list.push_back(*trans);
+            delete trans;
+        }
+
         up = diagram->get_nb(0, 10, -1);	//  23.444 GHz; discovery: Voronkov et al. MNRAS 413, 2339, 2011
         low = diagram->get_nb(0, 9, -2);
 
@@ -90,6 +117,7 @@ void ch3oh_classI_trans_list(const energy_diagram* diagram, list<transition>& tr
         }
 
         // there is a set of maser transitions J_2->J_1, J = 2,3,4,5,6,7,8,9 (Voronkov et al., MNRAS 373, 411-424, 2006),
+        // J = 10 (Towner et al. ApJSS 230, 22 (2017)
         // frequencies from Mekhtiev et al., J. Mol. Spectr. 194, 171-178 (1999),
         up = diagram->get_nb(0, 2, 2);	//  24.934398 GHz, detected
         low = diagram->get_nb(0, 2, 1);
@@ -254,7 +282,16 @@ void ch3oh_classI_trans_list(const energy_diagram* diagram, list<transition>& tr
             delete trans;
         }
 
-        up = diagram->get_nb(0, 7, -1); //  181.296 GHz, detected
+        up = diagram->get_nb(0, 12, -1); //  150.884 GHz, 
+        low = diagram->get_nb(0, 11, -2);
+
+        if (up != -1 && low != -1) {
+            trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+            trans_list.push_back(*trans);
+            delete trans;
+        }
+
+        up = diagram->get_nb(0, 7, -1); //  181.296 GHz, 
         low = diagram->get_nb(0, 6, 0);
 
         if (up != -1 && low != -1) {
@@ -555,8 +592,9 @@ void para_h2o_trans_list(const energy_diagram *diagram, std::list<transition>& t
 {
     int up, low;
     transition* trans;
-
-    up = diagram->get_nb(0, 3, -2);	// 183.3 GHz
+    
+    // frequencies are truncated
+    up = diagram->get_nb(0, 3, -2);	// 183.310 GHz, observed, see compilation by Neufeld et al., ApJ 843, 94 (2017);
     low = diagram->get_nb(0, 2, 2);
 
     if (up != -1 && low != -1) {
@@ -565,8 +603,71 @@ void para_h2o_trans_list(const energy_diagram *diagram, std::list<transition>& t
         delete trans;
     }
 
-    up = diagram->get_nb(0, 5, -4); // 325.2 GHz
+    up = diagram->get_nb(0, 5, -4); // 325.153 GHz, observed
     low = diagram->get_nb(0, 4, 0);
+
+    if (up != -1 && low != -1) {
+        trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+        trans_list.push_back(*trans);
+        delete trans;
+    }
+
+    up = diagram->get_nb(0, 7, 2); // 437 GHz, observed
+    low = diagram->get_nb(0, 6, 6);
+
+    if (up != -1 && low != -1) {
+        trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+        trans_list.push_back(*trans);
+        delete trans;
+    }
+
+    up = diagram->get_nb(0, 6, 2); // 471 GHz, observed
+    low = diagram->get_nb(0, 5, 4);
+
+    if (up != -1 && low != -1) {
+        trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+        trans_list.push_back(*trans);
+        delete trans;
+    }
+
+    up = diagram->get_nb(0, 5, 0); // 474.689 GHz, observed
+    low = diagram->get_nb(0, 4, 4);
+
+    if (up != -1 && low != -1) {
+        trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+        trans_list.push_back(*trans);
+        delete trans;
+    }
+
+    up = diagram->get_nb(0, 4, 0); // 916.171 GHz
+    low = diagram->get_nb(0, 3, 2);
+
+    if (up != -1 && low != -1) {
+        trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+        trans_list.push_back(*trans);
+        delete trans;
+    }
+
+    up = diagram->get_nb(0, 5, -2); // 970.315 GHz, observed
+    low = diagram->get_nb(0, 4, 2);
+
+    if (up != -1 && low != -1) {
+        trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+        trans_list.push_back(*trans);
+        delete trans;
+    }
+
+    up = diagram->get_nb(0, 7, -4); // 1440.78 GHz
+    low = diagram->get_nb(0, 6, 0);
+
+    if (up != -1 && low != -1) {
+        trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+        trans_list.push_back(*trans);
+        delete trans;
+    }
+
+    up = diagram->get_nb(0, 6, 0); // 1541.964 GHz
+    low = diagram->get_nb(0, 5, 2);
 
     if (up != -1 && low != -1) {
         trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
@@ -580,7 +681,8 @@ void ortho_h2o_trans_list(const energy_diagram* diagram, std::list<transition>& 
     int up, low;
     transition* trans;
 
-    up = diagram->get_nb(0, 6, -5);	// 22.235 GHz
+    // frequencies are truncated
+    up = diagram->get_nb(0, 6, -5);	// 22.2353 GHz, observed, see compilation by Neufeld et al., ApJ 843, 94 (2017); 
     low = diagram->get_nb(0, 5, -1);
 
     if (up != -1 && low != -1) {
@@ -589,7 +691,7 @@ void ortho_h2o_trans_list(const energy_diagram* diagram, std::list<transition>& 
         delete trans;
     }
 
-    up = diagram->get_nb(0, 10, -7); // 321.2 GHz
+    up = diagram->get_nb(0, 10, -7); // 321.225 GHz, observed
     low = diagram->get_nb(0, 9, -3);
 
     if (up != -1 && low != -1) {
@@ -607,7 +709,7 @@ void ortho_h2o_trans_list(const energy_diagram* diagram, std::list<transition>& 
         delete trans;
     }
 
-    up = diagram->get_nb(0, 4, -3);	// 380.2 GHz
+    up = diagram->get_nb(0, 4, -3);	// 380.197 GHz, observed
     low = diagram->get_nb(0, 3, 1);
 
     if (up != -1 && low != -1) {
@@ -616,7 +718,7 @@ void ortho_h2o_trans_list(const energy_diagram* diagram, std::list<transition>& 
         delete trans;
     }
 
-    up = diagram->get_nb(0, 6, 1);	// 439.15 GHz
+    up = diagram->get_nb(0, 6, 1);	// 439.150 GHz, observed
     low = diagram->get_nb(0, 5, 5);
 
     if (up != -1 && low != -1) {
@@ -625,7 +727,7 @@ void ortho_h2o_trans_list(const energy_diagram* diagram, std::list<transition>& 
         delete trans;
     }
 
-    up = diagram->get_nb(0, 7, 3);	// 443.0 GHz
+    up = diagram->get_nb(0, 7, 3);	// 443.018 GHz
     low = diagram->get_nb(0, 6, 5);
 
     if (up != -1 && low != -1) {
@@ -634,7 +736,7 @@ void ortho_h2o_trans_list(const energy_diagram* diagram, std::list<transition>& 
         delete trans;
     }
 
-    up = diagram->get_nb(0, 4, -1);	// 448.0 GHz
+    up = diagram->get_nb(0, 4, -1);	// 448.001 GHz
     low = diagram->get_nb(0, 3, 3);
 
     if (up != -1 && low != -1) {
@@ -643,8 +745,62 @@ void ortho_h2o_trans_list(const energy_diagram* diagram, std::list<transition>& 
         delete trans;
     }
 
-    up = diagram->get_nb(0, 5, 1);	// 620.7 GHz
+    up = diagram->get_nb(0, 5, 1);	// 620.701 GHz, observed
     low = diagram->get_nb(0, 4, 3);
+
+    if (up != -1 && low != -1) {
+        trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+        trans_list.push_back(*trans);
+        delete trans;
+    }
+
+    up = diagram->get_nb(0, 3, -1);	// 1153.12 GHz
+    low = diagram->get_nb(0, 2, 1);
+
+    if (up != -1 && low != -1) {
+        trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+        trans_list.push_back(*trans);
+        delete trans;
+    }
+
+    up = diagram->get_nb(0, 6, -1);	// 1158.32 GHz
+    low = diagram->get_nb(0, 5, 3);
+
+    if (up != -1 && low != -1) {
+        trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+        trans_list.push_back(*trans);
+        delete trans;
+    }
+
+    up = diagram->get_nb(0, 7, 1);	// 1278.26 GHz, observed
+    low = diagram->get_nb(0, 6, 3);
+
+    if (up != -1 && low != -1) {
+        trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+        trans_list.push_back(*trans);
+        delete trans;
+    }
+
+    up = diagram->get_nb(0, 8, -5);	// 1296.41 GHz, observed
+    low = diagram->get_nb(0, 7, -1);
+
+    if (up != -1 && low != -1) {
+        trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+        trans_list.push_back(*trans);
+        delete trans;
+    }
+
+    up = diagram->get_nb(0, 6, -3);	// 1322.06 GHz
+    low = diagram->get_nb(0, 5, 1);
+
+    if (up != -1 && low != -1) {
+        trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);
+        trans_list.push_back(*trans);
+        delete trans;
+    }
+
+    up = diagram->get_nb(0, 8, -1);	// 1885 GHz, observed
+    low = diagram->get_nb(0, 7, 3);
 
     if (up != -1 && low != -1) {
         trans = new transition(diagram->lev_array[low], diagram->lev_array[up]);

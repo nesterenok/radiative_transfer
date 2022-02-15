@@ -764,6 +764,7 @@ void transition_data_container::save_transition(const std::string& fname, const 
 			<< setw(14) << "lossrate(s-1)" << endl;
         
 		for (i = 0; i < nb_cloud_lay; i++) {
+			// for first and last layer - cloud boundary is set, for other layers - the middle point of the layer
             if (i == 0) z = 0;
             else if (i == nb_cloud_lay - 1) z = cloud->lay_array[i].zu;
             else z = cloud->lay_array[i].zm;

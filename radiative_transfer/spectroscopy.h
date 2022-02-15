@@ -46,8 +46,8 @@ public:
 class energy_level
 {
 public:
-	// level nb, sym inv (+1,-1), statistical weight (including j and spin), vibrational quantum number, 
-	int nb, syminv, g, v;
+	// level nb, sym inv (+1,-1), statistical weight (including j and spin), vibrational quantum number, electronic state nb,
+	int nb, syminv, g, v, el;
 	// angular momentum, projections of the angular momentum on molecule axes, molecule spin, energy (cm-1), hyperfine splitting quantum number
 	double j, k1, k2, spin, energy, hf;
 	std::string name;
@@ -55,7 +55,7 @@ public:
 	// The relation operators are needed to sort by energy; the levels are equal if all quantum numbers coincide,
     // for the ions the variables "name" and "g" define the level 
 	bool operator == (const energy_level &obj) const {
-		return (v == obj.v && syminv == obj.syminv && rounding(2.*j) == rounding(2.*obj.j) && rounding(2.*k1) == rounding(2.*obj.k1) 
+		return (el == obj.el && v == obj.v && syminv == obj.syminv && rounding(2.*j) == rounding(2.*obj.j) && rounding(2.*k1) == rounding(2.*obj.k1) 
 			&& rounding(2.*k2) == rounding(2.*obj.k2) && rounding(2.*hf) == rounding(2.*obj.hf) 
             && name == obj.name && g == obj.g);
 	}
@@ -70,7 +70,7 @@ class energy_diagram
 {
 public:
     bool hyperfine_splitting;
-	int nb_lev, verbosity;
+	int nb_lev, verbosity, electronic_state;
 	const molecule mol;
 	std::vector<energy_level> lev_array;
 
@@ -91,6 +91,10 @@ class h2_diagram : public energy_diagram
 {
 public:
 	h2_diagram(const std::string &path, molecule m, int &n_l, int verbosity = 1);
+	// for excited electronic states, electronic state notation: B 1, C+ 2, C- 3,
+	// the data from CLOUDY code (all comments must contain #, no empty line at the file end), 
+	// B 1 - 882 levels, C+ 248 levels, C- 251 levels
+	h2_diagram(int electronic_state, const std::string& path, molecule m, int& n_l, int verbosity = 1);
 	int get_nb(int v, double j) const;
 };
 
@@ -254,7 +258,9 @@ public:
 class transition
 {
 public:
-	double energy, freq;
+	// frequency in Hz, energy in cm-1, einst_coeff in s-1 (A, from upper to lower), 
+	// cross_section is in [cm2] (for UV pumping simulations), see book by Draine (2011), p.56, eq. (6.18)
+	double energy, freq, einst_coeff, cross_section;  
 	energy_level low_lev, up_lev;
 
 // The relation operators are needed to sort transition vector by energy:
@@ -264,4 +270,5 @@ public:
 	bool operator > (transition obj) const {return (energy > obj.energy && !(*this == obj));}
 	
 	transition(energy_level lowl, energy_level upl);
+	transition(energy_level lowl, energy_level upl, double einst_coeff);
 };

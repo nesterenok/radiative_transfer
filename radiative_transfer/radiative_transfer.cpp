@@ -59,8 +59,10 @@ void calc_ch3oh_e_masers(string input_data_path, string sim_data_path, string ou
 
 // H2O radiative transfer calculations, population densities are saved
 // the data on population densities obtained by shock modeling may be used (for test)
-void calc_h2o_para_masers(string input_data_path, string sim_data_path, string output_path, bool save_pop_dens, bool is_shock_data_used, int verbosity);
-void calc_h2o_ortho_masers(string input_data_path, string sim_data_path, string output_path, bool save_pop_dens, int verbosity);
+void calc_h2o_para_masers(string input_data_path, string sim_data_path, string output_path, 
+    bool save_pop_dens, bool add_vibr_trans, bool is_shock_data_used, int verbosity);
+void calc_h2o_ortho_masers(string input_data_path, string sim_data_path, string output_path, 
+    bool save_pop_dens, bool add_vibr_trans, int verbosity);
 
 // NH3 radiative transfer calculations,
 void calc_nh3_para_masers(string input_data_path, string sim_data_path, string output_path, int verbosity);
@@ -100,16 +102,17 @@ int main()
     }
 #endif
 
-    bool save_line_stat, save_pop_dens, is_shock_data_used;
+    bool save_line_stat, save_pop_dens, is_shock_data_used, add_vibr_trans;
     int verbosity(1);
     string path, suff1, suff2, sim_data_path, input_data_path, output_path;
     
-    suff1 = "2e6";  // gas density, 2e4, 2e5, 2e6
-    suff2 = "1-16";  // cosmic ray ionization rate, 1-17, 1-16, 1-15, 3-15, 1-14
+    suff1 = "2e7";  // gas density, 2e4, 2e5, 2e6, 2e7
+    suff2 = "3-17";  // cosmic ray ionization rate, 1-17, 3-17, 1-16, 3-16, 1-15, 3-15, 1-14
 
 #ifdef __linux__ 
     input_data_path = "/disk2/nester/input_data/";  // the path to the folder with spectroscopic data,
-    path = "/disk2/nester/sim_data_2020_07/";  // path to the folder with shock wave simulations data
+    // path to the folder with shock wave simulations data:
+    path = "/disk2/nester/sim_data_2022_01/";   // sim_data_2021_04   sim_data_2022_01
 
     stringstream lin_out;
     lin_out.clear();
@@ -123,7 +126,7 @@ int main()
     streambuf* orig_cout = cout.rdbuf(out.rdbuf());
 #else
     input_data_path = "C:/Users/Александр/Documents/input_data/";
-    path = "C:/Users/Александр/Documents/Данные и графики/paper Cosmic masers in C-type shocks/";
+    path = "C:/Users/Александр/Documents/Данные и графики/paper Modelling masers in C-type shocks - coexistence of CH3OH and OH/";
 #endif
 
     // calculation of OH line overlap statistics;
@@ -131,15 +134,17 @@ int main()
 //    ch3oh_coll_extrapolations(input_data_path, output_path = "");
 
 // check - extrapolated or not data on CH3OH collisions
-    sim_data_path = path + "output_data_2e6/shock_cr1-16_17-5/";    
-    output_path = path + "ch3oh_2e6/shock_cr1-16_17-5/";
+    sim_data_path = path + "output_data_2e5/shock_cr3-17_22-5/";    
+    output_path = path + "test/h2o_2e5_oph2_check/shock_cr3-17_22-5_oph2=3/";
 
-//    calc_ch3oh_a_masers(input_data_path, sim_data_path, output_path, save_pop_dens = true, verbosity);
-//    calc_ch3oh_e_masers(input_data_path, sim_data_path, output_path, save_pop_dens = true, verbosity);
-//    calc_h2o_para_masers(input_data_path, sim_data_path, output_path, save_pop_dens = true, is_shock_data_used = true, verbosity);
+//    calc_ch3oh_a_masers(input_data_path, sim_data_path, output_path, save_pop_dens = false, verbosity = false);
+//    calc_ch3oh_e_masers(input_data_path, sim_data_path, output_path, save_pop_dens = false, verbosity = false);
+    calc_h2o_para_masers(input_data_path, sim_data_path, output_path, save_pop_dens = false, add_vibr_trans = false, is_shock_data_used = false, verbosity=false);
+
 //    calc_oh_masers(input_data_path, sim_data_path, output_path, save_line_stat = true, verbosity);  // with line statistics
 //    calc_oh_masers_nolineoverlap(input_data_path, sim_data_path, output_path, verbosity);  // no line overlap
 
+    add_vibr_trans = true;
     save_line_stat = false;
     save_pop_dens = false; 
     is_shock_data_used = false;
@@ -182,23 +187,23 @@ int main()
             // check in coll_rates_oh.h - extended or usual data on OH-H2 collisions
             output_path = path + "oh_";
             output_path += suff;
-            calc_oh_masers(input_data_path, sim_data_path, output_path, save_line_stat, verbosity);  // no line statistics
+//            calc_oh_masers(input_data_path, sim_data_path, output_path, save_line_stat, verbosity);  // no line statistics
 
             // check in coll_rates_ch3oh.h - extrapolated or not data on CH3OH collisions
             output_path = path + "ch3oh_";
             output_path += suff;
-            calc_ch3oh_a_masers(input_data_path, sim_data_path, output_path, save_pop_dens, verbosity);
-            calc_ch3oh_e_masers(input_data_path, sim_data_path, output_path, save_pop_dens, verbosity);
+            //calc_ch3oh_a_masers(input_data_path, sim_data_path, output_path, save_pop_dens, verbosity);
+            //calc_ch3oh_e_masers(input_data_path, sim_data_path, output_path, save_pop_dens, verbosity);
                         
             output_path = path + "h2o_";
             output_path += suff;
-            calc_h2o_para_masers(input_data_path, sim_data_path, output_path, save_pop_dens, is_shock_data_used, verbosity);
-            calc_h2o_ortho_masers(input_data_path, sim_data_path, output_path, save_pop_dens, verbosity);
+            calc_h2o_para_masers(input_data_path, sim_data_path, output_path, save_pop_dens, add_vibr_trans, is_shock_data_used, verbosity);
+            calc_h2o_ortho_masers(input_data_path, sim_data_path, output_path, save_pop_dens, add_vibr_trans, verbosity);
 
-//            output_path = path + "nh3_";
-//            output_path += suff;
-//            calc_nh3_para_masers(input_data_path, sim_data_path, output_path, verbosity);
-//            calc_nh3_ortho_masers(input_data_path, sim_data_path, output_path, verbosity);
+            output_path = path + "nh3_";
+            output_path += suff;
+            //calc_nh3_para_masers(input_data_path, sim_data_path, output_path, verbosity);
+            //calc_nh3_ortho_masers(input_data_path, sim_data_path, output_path, verbosity);
             
 //            output_path = path + "h2co_";
 //            output_path += suff;
@@ -371,7 +376,7 @@ void save_mol_vibr_data(std::string fname, cloud_data* cloud, energy_diagram* mo
             for (j = 0; j < vnb; j++) {
                 if (vdata[j] < 1.e-99)
                     vdata[j] = 0.;
-                output << left << setw(13) << vdata[j] * cloud->lay_array[i].mol_conc;
+                output << left << setw(13) << vdata[j]; // *cloud->lay_array[i].mol_conc;  // be careful: number density or fraction!
             }
         }
         output.close();
@@ -860,7 +865,8 @@ void calc_ch3oh_e_masers(string input_data_path, string sim_data_path, string ou
 }
 
 // check acceleration mode and nb of iterations, 
-void calc_h2o_para_masers(string input_data_path, string sim_data_path, string output_path, bool save_pop_dens, bool is_shock_data_used, int verbosity)
+void calc_h2o_para_masers(string input_data_path, string sim_data_path, string output_path, 
+    bool save_pop_dens, bool add_vibr_trans, bool is_shock_data_used, int verbosity)
 {
     bool acceleration, do_simdata_exist;
     int isotope, nb_lev_h2o, nb_vibr_h2o, nb_cloud_lay;
@@ -932,6 +938,13 @@ void calc_h2o_para_masers(string input_data_path, string sim_data_path, string o
         para_h2o_trans_list(ph2o_levels, trans_list);
         trans_data_ph2o->add(trans_list, ph2o_popul);
 
+        //vibrationally excited
+        if (add_vibr_trans) {
+            trans_list.clear();
+            h2o_vibr_trans_list(ph2o_levels, trans_list);
+            trans_data_ph2o->add(trans_list, ph2o_popul);
+        }
+
         lim_luminosity_lvg(it_scheme_lvg, trans_data_ph2o, cloud, ph2o_levels, ph2o_einst, ph2o_coll, ph2o_popul);
         trans_data_ph2o->calc_saturation_depth(BEAMING_FACTOR);
 
@@ -952,12 +965,27 @@ void calc_h2o_para_masers(string input_data_path, string sim_data_path, string o
         sstr << output_path + "inv_trans_" << ph2o_mol.name << ".txt";
         trans_data_ph2o->save_full_data(sstr.str());
 
+        sstr.clear();
+        sstr.str("");
+        sstr << output_path + "inv_trans_" << ph2o_mol.name << "_short.txt";
+        trans_data_ph2o->save_short_data(-1, sstr.str());
+
         if (save_pop_dens) {
             sstr.clear();
             sstr.str("");
             sstr << output_path + "pop_dens_" + ph2o_mol.name + ".txt";
             save_mol_data(sstr.str(), cloud, ph2o_popul, nb_lev_h2o);
         }
+
+        sstr.clear();
+        sstr.str("");
+        sstr << output_path + "opt_depth_aratio_" + ph2o_mol.name + ".txt";
+        trans_data_ph2o->save_optical_depth_1(sstr.str());
+
+        sstr.clear();
+        sstr.str("");
+        sstr << output_path + "opt_depth_freq_" + ph2o_mol.name + ".txt";
+        trans_data_ph2o->save_optical_depth_2(sstr.str());
 
         delete[] ph2o_popul;
         delete ph2o_levels;
@@ -971,7 +999,8 @@ void calc_h2o_para_masers(string input_data_path, string sim_data_path, string o
 }
 
 // check acceleration mode and nb of iterations, 
-void calc_h2o_ortho_masers(string input_data_path, string sim_data_path, string output_path, bool save_pop_dens, int verbosity)
+void calc_h2o_ortho_masers(string input_data_path, string sim_data_path, string output_path, 
+    bool save_pop_dens, bool add_vibr_trans, int verbosity)
 {
     bool acceleration, do_simdata_exist;
     int isotope, nb_lev_h2o, nb_vibr_h2o, nb_cloud_lay;
@@ -1038,6 +1067,13 @@ void calc_h2o_ortho_masers(string input_data_path, string sim_data_path, string 
         ortho_h2o_trans_list(oh2o_levels, trans_list);
         trans_data_oh2o->add(trans_list, oh2o_popul);
         
+        //vibrationally excited
+        if (add_vibr_trans) {
+            trans_list.clear();
+            h2o_vibr_trans_list(oh2o_levels, trans_list);
+            trans_data_oh2o->add(trans_list, oh2o_popul);
+        }
+
         lim_luminosity_lvg(it_scheme_lvg, trans_data_oh2o, cloud, oh2o_levels, oh2o_einst, oh2o_coll, oh2o_popul);
         trans_data_oh2o->calc_saturation_depth(BEAMING_FACTOR);
 
@@ -1058,12 +1094,27 @@ void calc_h2o_ortho_masers(string input_data_path, string sim_data_path, string 
         sstr << output_path + "inv_trans_" << oh2o_mol.name << ".txt";
         trans_data_oh2o->save_full_data(sstr.str());
 
+        sstr.clear();
+        sstr.str("");
+        sstr << output_path + "inv_trans_" << oh2o_mol.name << "_short.txt";
+        trans_data_oh2o->save_short_data(-1, sstr.str());
+
         if (save_pop_dens) {
             sstr.clear();
             sstr.str("");
             sstr << output_path + "pop_dens_" + oh2o_mol.name + ".txt";
             save_mol_data(sstr.str(), cloud, oh2o_popul, nb_lev_h2o);
         }
+
+        sstr.clear();
+        sstr.str("");
+        sstr << output_path + "opt_depth_aratio_" + oh2o_mol.name + ".txt";
+        trans_data_oh2o->save_optical_depth_1(sstr.str());
+
+        sstr.clear();
+        sstr.str("");
+        sstr << output_path + "opt_depth_freq_" + oh2o_mol.name + ".txt";
+        trans_data_oh2o->save_optical_depth_2(sstr.str());
 
         delete[] oh2o_popul;
         delete oh2o_levels;
@@ -1161,6 +1212,21 @@ void calc_nh3_ortho_masers(string input_data_path, string sim_data_path, string 
         sstr << output_path + "inv_trans_" << onh3_mol.name << ".txt";
         trans_data_onh3->save_full_data(sstr.str());
 
+        sstr.clear();
+        sstr.str("");
+        sstr << output_path + "inv_trans_" << onh3_mol.name << "_short.txt";
+        trans_data_onh3->save_short_data(-1, sstr.str());
+
+        sstr.clear();
+        sstr.str("");
+        sstr << output_path + "opt_depth_aratio_" + onh3_mol.name + ".txt";
+        trans_data_onh3->save_optical_depth_1(sstr.str());
+
+        sstr.clear();
+        sstr.str("");
+        sstr << output_path + "opt_depth_freq_" + onh3_mol.name + ".txt";
+        trans_data_onh3->save_optical_depth_2(sstr.str());
+
         delete[] onh3_popul;
         delete onh3_levels;
         delete onh3_einst;
@@ -1256,6 +1322,21 @@ void calc_nh3_para_masers(string input_data_path, string sim_data_path, string o
         sstr.str("");
         sstr << output_path + "inv_trans_" << pnh3_mol.name << ".txt";
         trans_data_pnh3->save_full_data(sstr.str());
+
+        sstr.clear();
+        sstr.str("");
+        sstr << output_path + "inv_trans_" << pnh3_mol.name << "_short.txt";
+        trans_data_pnh3->save_short_data(-1, sstr.str());
+
+        sstr.clear();
+        sstr.str("");
+        sstr << output_path + "opt_depth_aratio_" + pnh3_mol.name + ".txt";
+        trans_data_pnh3->save_optical_depth_1(sstr.str());
+
+        sstr.clear();
+        sstr.str("");
+        sstr << output_path + "opt_depth_freq_" + pnh3_mol.name + ".txt";
+        trans_data_pnh3->save_optical_depth_2(sstr.str());
 
         delete[] pnh3_popul;
         delete pnh3_levels;

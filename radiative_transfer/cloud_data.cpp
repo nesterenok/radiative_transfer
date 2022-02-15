@@ -294,7 +294,7 @@ bool set_physical_parameters(std::string data_path, cloud_data* cloud)
             
             h2 *= clayer.tot_h_conc;
             clayer.ph2_conc = h2 / (1. + clayer.h2_opr);
-            clayer.oh2_conc = h2 - clayer.ph2_conc;
+            clayer.oh2_conc = h2 -clayer.ph2_conc;
             
             clayer.he_conc *= clayer.tot_h_conc;
             clayer.h_conc *= clayer.tot_h_conc;
